@@ -1,0 +1,342 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Users & Authentication
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  skills        Skill[]
+  teamMembers   TeamMember[]
+  skillVersions SkillVersion[]
+  feedback      SkillFeedback[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  TEAM_ADMIN
+  ADMIN
+}
+
+// ============================================
+// Teams
+// ============================================
+
+model Team {
+  id          String      @id @default(uuid())
+  name        String
+  slug        String      @unique
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  members     TeamMember[]
+  skills      Skill[]
+  bundles     SkillBundle[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String       @id @default(uuid())
+  teamId   String
+  userId   String
+  role     TeamRole     @default(MEMBER)
+  joinedAt DateTime     @default(now())
+
+  // Relations
+  team     Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+enum TeamRole {
+  MEMBER
+  ADMIN
+  OWNER
+}
+
+// ============================================
+// Skills & Versions
+// ============================================
+
+model Skill {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String        @unique
+  description String?
+  category    Category      @default(DEVELOPMENT)
+  tags        String[]      @default([])
+  authorId    String
+  teamId      String?
+  visibility  Visibility    @default(PUBLIC)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  team        Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  versions    SkillVersion[]
+  stats       SkillStat?
+  bundleSkills BundleSkill[]
+  feedback    SkillFeedback[]
+
+  @@index([authorId])
+  @@index([teamId])
+  @@index([visibility])
+  @@index([category])
+  @@index([visibility, category])
+  @@map("skills")
+}
+
+model SkillVersion {
+  id          String          @id @default(uuid())
+  skillId     String
+  version     String          // Semantic version (e.g., "1.0.0")
+  changelog   String?
+  filePath    String          // Path to stored zip file
+  status      SkillStatus     @default(PENDING)
+  createdAt   DateTime        @default(now())
+  createdBy   String
+
+  // Relations
+  skill       Skill           @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  creator     User            @relation(fields: [createdBy], references: [id])
+  files       SkillFile[]
+  evals       EvalQueue[]
+  scans       SecurityScan[]
+
+  @@unique([skillId, version])
+  @@index([skillId])
+  @@index([status])
+  @@map("skill_versions")
+}
+
+enum SkillStatus {
+  PENDING
+  VALIDATING
+  EVALUATING
+  SCANNING
+  APPROVED
+  REJECTED
+}
+
+model SkillFile {
+  id              String      @id @default(uuid())
+  skillVersionId  String
+  filePath        String      // Relative path within the skill
+  fileType        String      // MIME type
+  sizeBytes       Int
+  content         String?     @db.Text // File content for text-based files (markdown, code, etc.)
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  skillVersion    SkillVersion @relation(fields: [skillVersionId], references: [id], onDelete: Cascade)
+
+  @@index([skillVersionId])
+  @@map("skill_files")
+}
+
+enum Visibility {
+  PUBLIC
+  TEAM_ONLY
+  PRIVATE
+}
+
+enum Category {
+  DEVELOPMENT
+  SECURITY
+  DATA_ANALYTICS
+  AI_ML
+  TESTING
+  INTEGRATION
+}
+
+// ============================================
+// Evaluation System
+// ============================================
+
+model EvalQueue {
+  id              String      @id @default(uuid())
+  skillVersionId  String
+  status          JobStatus   @default(PENDING)
+  priority        Int         @default(5)
+  createdAt       DateTime    @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  error           String?
+
+  // Relations
+  skillVersion    SkillVersion @relation(fields: [skillVersionId], references: [id], onDelete: Cascade)
+  results         EvalResult[]
+
+  @@index([status])
+  @@index([priority])
+  @@map("eval_queues")
+}
+
+model EvalResult {
+  id          String      @id @default(uuid())
+  evalQueueId String
+  testName    String
+  status      TestStatus
+  output      String?     @db.Text
+  durationMs  Int
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  evalQueue   EvalQueue   @relation(fields: [evalQueueId], references: [id], onDelete: Cascade)
+
+  @@index([evalQueueId])
+  @@map("eval_results")
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum TestStatus {
+  PASSED
+  FAILED
+  SKIPPED
+  ERROR
+}
+
+// ============================================
+// Security Scanner
+// ============================================
+
+model SecurityScan {
+  id              String        @id @default(uuid())
+  skillVersionId  String
+  status          JobStatus     @default(PENDING)
+  score           Int?          // 0-100
+  reportJson      Json?
+  createdAt       DateTime      @default(now())
+  completedAt     DateTime?
+
+  // Relations
+  skillVersion    SkillVersion  @relation(fields: [skillVersionId], references: [id], onDelete: Cascade)
+
+  @@index([skillVersionId])
+  @@map("security_scans")
+}
+
+// ============================================
+// Skill Bundles
+// ============================================
+
+model SkillBundle {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String        @unique
+  description String?
+  teamId      String?
+  visibility  Visibility    @default(PUBLIC)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  team        Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  skills      BundleSkill[]
+
+  @@map("skill_bundles")
+}
+
+model BundleSkill {
+  id        String      @id @default(uuid())
+  bundleId  String
+  skillId   String
+  addedAt   DateTime    @default(now())
+
+  // Relations
+  bundle    SkillBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  skill     Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, skillId])
+  @@map("bundle_skills")
+}
+
+// ============================================
+// Statistics
+// ============================================
+
+model SkillStat {
+  id                String    @id @default(uuid())
+  skillId           String    @unique
+  downloadsCount    Int       @default(0)
+  viewsCount        Int       @default(0)
+  lastDownloadedAt  DateTime?
+  lastViewedAt      DateTime?
+
+  // Relations
+  skill             Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@map("skill_stats")
+}
+
+// ============================================
+// Audit Log
+// ============================================
+
+model AuditLog {
+  id        String    @id @default(uuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// Skill Feedback & Comments
+// ============================================
+
+model SkillFeedback {
+  id        String    @id @default(uuid())
+  skillId   String
+  userId    String
+  rating    Int?      // 1-5 stars, optional
+  comment   String?   @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  skill     Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([skillId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("skill_feedback")
+}

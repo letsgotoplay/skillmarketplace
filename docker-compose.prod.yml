@@ -1,0 +1,84 @@
+# Production Docker Compose Configuration
+version: '3.8'
+
+services:
+  app:
+    image: skillmarketplace:production
+    container_name: skillmarketplace-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://skillmarket:skillmarket123@postgres:5432/skillmarketplace
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skillmarketplace-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: skillmarketplace-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skillmarket
+      POSTGRES_PASSWORD: skillmarket123
+      POSTGRES_DB: skillmarketplace
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillmarket -d skillmarketplace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillmarketplace-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: skillmarketplace-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skillmarketplace-network
+
+  sandbox:
+    build:
+      context: ./docker/sandbox
+      dockerfile: Dockerfile
+    container_name: skillmarketplace-sandbox
+    restart: unless-stopped
+    privileged: false
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    volumes:
+      - sandbox_tmp:/tmp
+    networks:
+      - skillmarketplace-network
+    command: ["sleep", "infinity"]
+
+networks:
+  skillmarketplace-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  sandbox_tmp:
