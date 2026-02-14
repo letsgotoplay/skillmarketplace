@@ -6,6 +6,68 @@ import { parseSkillZip, parseTestConfig } from '@/lib/skills';
 import { readFile } from 'fs/promises';
 import { prisma } from '@/lib/db';
 
+/**
+ * @openapi
+ * /eval:
+ *   post:
+ *     tags: [Evaluations]
+ *     summary: Queue evaluation
+ *     description: Queue a skill for automated evaluation (owner only). Requires test cases in the skill package.
+ *     security:
+ *       - session: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - skillVersionId
+ *             properties:
+ *               skillVersionId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Skill version ID to evaluate
+ *     responses:
+ *       200:
+ *         description: Evaluation queued successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 evalId:
+ *                   type: string
+ *                   description: Job ID for tracking the evaluation
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Missing skillVersionId or no test cases found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Access denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Skill version not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 

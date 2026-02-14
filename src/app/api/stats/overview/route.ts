@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getOverviewStatistics } from '@/lib/stats';
 import { exportOverviewToCSV, generateFilename } from '@/lib/stats/export';
 
+/**
+ * @openapi
+ * /stats/overview:
+ *   get:
+ *     tags: [Statistics]
+ *     summary: Get overview statistics
+ *     description: Get overall marketplace statistics including totals by category, downloads, and security scores
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, csv]
+ *         description: Output format (defaults to JSON)
+ *     responses:
+ *       200:
+ *         description: Overview statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OverviewStats'
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *       500:
+ *         description: Failed to fetch statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

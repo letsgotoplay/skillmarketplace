@@ -17,7 +17,89 @@ async function findSkillByIdOrSlug(idOrSlug: string) {
   });
 }
 
-// GET - List feedback for a skill
+/**
+ * @openapi
+ * /skills/{id}/feedback:
+ *   get:
+ *     tags: [Feedback]
+ *     summary: List skill feedback
+ *     description: Get all feedback for a skill (publicly accessible)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Skill ID or slug
+ *     responses:
+ *       200:
+ *         description: List of feedback
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Feedback'
+ *       404:
+ *         description: Skill not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   post:
+ *     tags: [Feedback]
+ *     summary: Submit feedback
+ *     description: Submit rating and/or comment for a skill (requires authentication)
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Skill ID or slug
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 description: Rating from 1 to 5
+ *               comment:
+ *                 type: string
+ *                 description: Text feedback
+ *     responses:
+ *       201:
+ *         description: Feedback created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Feedback'
+ *       400:
+ *         description: Rating or comment required, or invalid rating
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Skill not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

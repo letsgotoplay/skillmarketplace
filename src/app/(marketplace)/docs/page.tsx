@@ -16,6 +16,8 @@ import {
   Zap,
   Users,
   Shield,
+  Rocket,
+  FileJson,
 } from 'lucide-react';
 
 export default function DocsPage() {
@@ -62,7 +64,19 @@ export default function DocsPage() {
       {/* Quick Links */}
       <section className="mb-12">
         <h2 className="text-2xl font-bold mb-6">Documentation</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <Link href="/docs/getting-started">
+            <Card className="h-full hover:border-primary transition-colors cursor-pointer">
+              <CardHeader>
+                <Rocket className="h-8 w-8 text-primary mb-2" />
+                <CardTitle className="text-lg">Getting Started</CardTitle>
+                <CardDescription>
+                  User guide and core flows
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
           <Link href="/docs/what-are-skills">
             <Card className="h-full hover:border-primary transition-colors cursor-pointer">
               <CardHeader>
@@ -82,6 +96,18 @@ export default function DocsPage() {
                 <CardTitle className="text-lg">Specification</CardTitle>
                 <CardDescription>
                   The complete format specification
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/docs/api">
+            <Card className="h-full hover:border-primary transition-colors cursor-pointer">
+              <CardHeader>
+                <FileJson className="h-8 w-8 text-primary mb-2" />
+                <CardTitle className="text-lg">API Reference</CardTitle>
+                <CardDescription>
+                  Full REST API documentation
                 </CardDescription>
               </CardHeader>
             </Card>

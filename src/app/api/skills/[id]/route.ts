@@ -5,6 +5,89 @@ import { prisma } from '@/lib/db';
 import { readFile } from 'fs/promises';
 import { notFound } from 'next/navigation';
 
+/**
+ * @openapi
+ * /skills/{id}:
+ *   get:
+ *     tags: [Skills]
+ *     summary: Get skill details
+ *     description: Get detailed information about a specific skill including versions, stats, and author info
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Skill ID
+ *     responses:
+ *       200:
+ *         description: Skill details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Skill'
+ *       401:
+ *         description: Unauthorized - authentication required for private/team skills
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Access denied - not a team member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Skill not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   delete:
+ *     tags: [Skills]
+ *     summary: Delete a skill
+ *     description: Delete a skill (owner only)
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Skill ID
+ *     responses:
+ *       200:
+ *         description: Skill deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Access denied - not the owner
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Skill not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

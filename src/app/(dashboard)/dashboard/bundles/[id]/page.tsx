@@ -6,6 +6,7 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { ArrowDown, Pencil } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -57,16 +58,18 @@ export default async function BundleDetailPage({
   }
 
   // Check access for TEAM_ONLY bundles
-  if (bundle.visibility === 'TEAM_ONLY' && bundle.teamId) {
+  let canEdit = false;
+  if (bundle.teamId) {
     const membership = await prisma.teamMember.findFirst({
       where: {
         teamId: bundle.teamId,
         userId: session.user.id,
       },
     });
-    if (!membership) {
+    if (!membership && bundle.visibility === 'TEAM_ONLY') {
       notFound();
     }
+    canEdit = membership?.role === 'ADMIN' || membership?.role === 'OWNER';
   }
 
   return (
@@ -90,6 +93,20 @@ export default async function BundleDetailPage({
         <div className="flex gap-2">
           <Link href="/dashboard/bundles">
             <Button variant="outline">Back to Bundles</Button>
+          </Link>
+          {canEdit && (
+            <Link href={`/dashboard/bundles/${bundle.id}/edit`}>
+              <Button variant="outline">
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </Link>
+          )}
+          <Link href={`/api/bundles/${bundle.id}/download`}>
+            <Button>
+              <ArrowDown className="h-4 w-4 mr-2" />
+              Download Bundle
+            </Button>
           </Link>
         </div>
       </div>

@@ -86,7 +86,7 @@ enum TeamRole {
 model Skill {
   id          String        @id @default(uuid())
   name        String
-  slug        String        @unique
+  slug        String        // Unique per user (see @@unique below)
   description String?
   category    Category      @default(DEVELOPMENT)
   tags        String[]      @default([])
@@ -105,6 +105,7 @@ model Skill {
   feedback      SkillFeedback[]
   downloads     DownloadRecord[]
 
+  @@unique([slug, authorId])  // Same skill name allowed for different users
   @@index([authorId])
   @@index([teamId])
   @@index([visibility])
@@ -243,6 +244,8 @@ model SecurityScan {
   skillVersionId  String
   status          JobStatus     @default(PENDING)
   score           Int?          // 0-100
+  riskLevel       String?       // low, medium, high, critical
+  blockExecution  Boolean       @default(false)
   reportJson      Json?
   createdAt       DateTime      @default(now())
   completedAt     DateTime?
@@ -251,7 +254,27 @@ model SecurityScan {
   skillVersion    SkillVersion  @relation(fields: [skillVersionId], references: [id], onDelete: Cascade)
 
   @@index([skillVersionId])
+  @@index([riskLevel])
   @@map("security_scans")
+}
+
+// ============================================
+// Security Configuration
+// ============================================
+
+model SecurityConfig {
+  id                  String   @id @default(uuid())
+  name                String   @unique
+  version             String
+  isActive            Boolean  @default(true)
+  systemPrompt        String   @db.Text
+  rulesJson           Json     // Array of SecurityRule
+  outputFormat        String   @db.Text
+  additionalSettings  Json?    // Any additional configuration
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("security_configs")
 }
 
 // ============================================

@@ -50,6 +50,5 @@ Project Framework:
 Rules:
 (1) I don't just want it to work — I want it to be something I'm proud to show people
 (2) This is real. Not a mockup. Not a prototype. A working product.
-(3) create comprehensive test cases for each tasks, and e2e could load agent-browser skill to verify
 
-pnpm, uv should be used for target lang package manager.
+pnpm, uv should be used for target lang package manager. npx prisma studio --port 5556 for db schemas and data.

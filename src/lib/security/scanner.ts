@@ -36,8 +36,9 @@ export interface SecurityReport {
   analyzedAt: string;
 }
 
-// Dangerous patterns to detect in code
+// Dangerous patterns to detect in code and markdown files
 const DANGEROUS_PATTERNS = [
+  // ===== Code Injection Patterns =====
   {
     pattern: /eval\s*\(/gi,
     severity: 'high' as const,
@@ -78,14 +79,8 @@ const DANGEROUS_PATTERNS = [
     description: 'Importing child_process module',
     recommendation: 'Ensure this is necessary and all usage is secure',
   },
-  {
-    pattern: /fetch\s*\(\s*['"`]https?:\/\//gi,
-    severity: 'low' as const,
-    category: 'Network Access',
-    title: 'Hardcoded URL',
-    description: 'Found hardcoded external URL',
-    recommendation: 'Consider making URLs configurable and validate domains',
-  },
+
+  // ===== Credential Patterns =====
   {
     pattern: /password\s*=\s*['"`][^'"`]+['"`]/gi,
     severity: 'critical' as const,
@@ -111,6 +106,74 @@ const DANGEROUS_PATTERNS = [
     recommendation: 'Use secure secret management',
   },
   {
+    pattern: /token\s*=\s*['"`][^'"`]+['"`]/gi,
+    severity: 'critical' as const,
+    category: 'Credentials',
+    title: 'Hardcoded Token',
+    description: 'Found hardcoded token in code',
+    recommendation: 'Use environment variables for tokens',
+  },
+  {
+    pattern: /bearer\s+[a-zA-Z0-9_-]+/gi,
+    severity: 'critical' as const,
+    category: 'Credentials',
+    title: 'Bearer Token Exposure',
+    description: 'Found bearer token in code',
+    recommendation: 'Remove hardcoded bearer tokens',
+  },
+  {
+    pattern: /aws_access_key_id\s*=\s*[A-Z0-9]{16,}/gi,
+    severity: 'critical' as const,
+    category: 'Credentials',
+    title: 'AWS Access Key',
+    description: 'Found AWS access key ID',
+    recommendation: 'Use IAM roles or environment variables',
+  },
+  {
+    pattern: /aws_secret_access_key\s*=\s*[a-zA-Z0-9/+=]{30,}/gi,
+    severity: 'critical' as const,
+    category: 'Credentials',
+    title: 'AWS Secret Key',
+    description: 'Found AWS secret access key',
+    recommendation: 'Use IAM roles or environment variables',
+  },
+  {
+    pattern: /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----/gi,
+    severity: 'critical' as const,
+    category: 'Credentials',
+    title: 'Private Key Exposure',
+    description: 'Found embedded private key',
+    recommendation: 'Never include private keys in code or documentation',
+  },
+
+  // ===== Network and URL Patterns =====
+  {
+    pattern: /fetch\s*\(\s*['"`]https?:\/\//gi,
+    severity: 'low' as const,
+    category: 'Network Access',
+    title: 'Hardcoded URL',
+    description: 'Found hardcoded external URL',
+    recommendation: 'Consider making URLs configurable and validate domains',
+  },
+  {
+    pattern: /curl\s+.*\|\s*(bash|sh|zsh)/gi,
+    severity: 'critical' as const,
+    category: 'Remote Code Execution',
+    title: 'curl | bash Pattern',
+    description: 'Remote code execution pattern detected',
+    recommendation: 'Never pipe curl output directly to shell',
+  },
+  {
+    pattern: /wget\s+.*\|\s*(bash|sh|zsh)/gi,
+    severity: 'critical' as const,
+    category: 'Remote Code Execution',
+    title: 'wget | bash Pattern',
+    description: 'Remote code execution pattern detected',
+    recommendation: 'Never pipe wget output directly to shell',
+  },
+
+  // ===== Obfuscation Patterns =====
+  {
     pattern: /eval\s*\(\s*(atob|btoa)/gi,
     severity: 'critical' as const,
     category: 'Obfuscation',
@@ -118,6 +181,16 @@ const DANGEROUS_PATTERNS = [
     description: 'Found eval with base64 encoding - possible obfuscation',
     recommendation: 'Remove obfuscated code execution',
   },
+  {
+    pattern: /atob\s*\(/gi,
+    severity: 'medium' as const,
+    category: 'Obfuscation',
+    title: 'Base64 Decoding',
+    description: 'Found base64 decoding - could be used for obfuscation',
+    recommendation: 'Verify base64 usage is legitimate',
+  },
+
+  // ===== Path Traversal Patterns =====
   {
     pattern: /require\s*\(\s*['"`]\.\.\/\.\.\/\.\.\//gi,
     severity: 'high' as const,
@@ -127,12 +200,174 @@ const DANGEROUS_PATTERNS = [
     recommendation: 'Use proper module structure to avoid path traversal risks',
   },
   {
+    pattern: /\.\.\/\.\.\/\.\./g,
+    severity: 'high' as const,
+    category: 'Path Traversal',
+    title: 'Path Traversal Pattern',
+    description: 'Potential path traversal pattern detected',
+    recommendation: 'Validate and sanitize file paths',
+  },
+
+  // ===== System Access Patterns =====
+  {
     pattern: /process\.env\.[A-Z_]+/gi,
     severity: 'info' as const,
     category: 'Environment Access',
     title: 'Environment Variable Access',
     description: 'Code accesses environment variables',
     recommendation: 'Ensure environment variable access is intentional and documented',
+  },
+  {
+    pattern: /\/etc\/(passwd|shadow|hosts)/gi,
+    severity: 'critical' as const,
+    category: 'System Access',
+    title: 'Sensitive System File Access',
+    description: 'Attempt to access sensitive system files',
+    recommendation: 'Never access system credential files',
+  },
+  {
+    pattern: /~\/\.ssh\//gi,
+    severity: 'critical' as const,
+    category: 'System Access',
+    title: 'SSH Key Access',
+    description: 'Attempt to access SSH keys',
+    recommendation: 'Never access user SSH keys',
+  },
+  {
+    pattern: /~\/\.aws\//gi,
+    severity: 'critical' as const,
+    category: 'System Access',
+    title: 'AWS Credentials Access',
+    description: 'Attempt to access AWS credentials',
+    recommendation: 'Never access AWS credential files',
+  },
+
+  // ===== Destructive Operation Patterns =====
+  {
+    pattern: /rm\s+-rf\s+\//gi,
+    severity: 'critical' as const,
+    category: 'Destructive Operations',
+    title: 'Destructive rm Command',
+    description: 'rm -rf with root path detected',
+    recommendation: 'Remove destructive file operations',
+  },
+  {
+    pattern: /rm\s+-rf\s+\*/gi,
+    severity: 'critical' as const,
+    category: 'Destructive Operations',
+    title: 'Destructive rm Command',
+    description: 'rm -rf with wildcard detected',
+    recommendation: 'Remove destructive file operations',
+  },
+  {
+    pattern: /chmod\s+777/gi,
+    severity: 'high' as const,
+    category: 'Privilege Escalation',
+    title: 'World-Writable Permission',
+    description: 'chmod 777 makes files world-writable',
+    recommendation: 'Use more restrictive permissions',
+  },
+  {
+    pattern: /kill\s+-9/gi,
+    severity: 'high' as const,
+    category: 'Destructive Operations',
+    title: 'Force Kill Command',
+    description: 'Force kill command detected',
+    recommendation: 'Ensure process termination is intentional',
+  },
+
+  // ===== MD-Specific Security Patterns =====
+  {
+    pattern: /allowed-paths\s*:\s*\/\//gi,
+    severity: 'high' as const,
+    category: 'Excessive Permissions',
+    title: 'Root Path Access',
+    description: 'allowed-paths grants access to entire filesystem',
+    recommendation: 'Restrict allowed-paths to specific directories',
+  },
+  {
+    pattern: /allowed-paths\s*:\s*\//gi,
+    severity: 'high' as const,
+    category: 'Excessive Permissions',
+    title: 'Root Path Access',
+    description: 'allowed-paths grants root access',
+    recommendation: 'Restrict allowed-paths to specific directories',
+  },
+  {
+    pattern: /allowed-tools\s*:\s*(All|\*|all)/gi,
+    severity: 'high' as const,
+    category: 'Excessive Permissions',
+    title: 'Unrestricted Tool Access',
+    description: 'allowed-tools grants access to all tools',
+    recommendation: 'Specify only required tools',
+  },
+  {
+    pattern: /ignore\s+(all\s+)?(security|permission|restriction)/gi,
+    severity: 'critical' as const,
+    category: 'Security Bypass',
+    title: 'Security Bypass Instruction',
+    description: 'Instruction to ignore security measures detected',
+    recommendation: 'Remove security bypass instructions',
+  },
+  {
+    pattern: /bypass\s+(security|permission|auth)/gi,
+    severity: 'critical' as const,
+    category: 'Security Bypass',
+    title: 'Security Bypass Instruction',
+    description: 'Instruction to bypass security detected',
+    recommendation: 'Remove security bypass instructions',
+  },
+  {
+    pattern: /disable\s+(security|validation|check)/gi,
+    severity: 'critical' as const,
+    category: 'Security Bypass',
+    title: 'Security Disable Instruction',
+    description: 'Instruction to disable security detected',
+    recommendation: 'Remove security disable instructions',
+  },
+
+  // ===== Persistence Patterns =====
+  {
+    pattern: /crontab\s+-e/gi,
+    severity: 'high' as const,
+    category: 'Persistence',
+    title: 'Cron Job Modification',
+    description: 'Modifying cron jobs detected',
+    recommendation: 'Avoid adding persistent cron jobs',
+  },
+  {
+    pattern: /launchctl\s+load/gi,
+    severity: 'high' as const,
+    category: 'Persistence',
+    title: 'Launch Agent Installation',
+    description: 'Installing launch agents detected',
+    recommendation: 'Avoid installing persistent launch agents',
+  },
+  {
+    pattern: /systemctl\s+enable/gi,
+    severity: 'high' as const,
+    category: 'Persistence',
+    title: 'Systemd Service Enable',
+    description: 'Enabling systemd services detected',
+    recommendation: 'Avoid enabling persistent services',
+  },
+
+  // ===== SSRF Patterns =====
+  {
+    pattern: /169\.254\.(169|170)\./gi,
+    severity: 'critical' as const,
+    category: 'SSRF',
+    title: 'Cloud Metadata Access',
+    description: 'Attempt to access cloud metadata service',
+    recommendation: 'Block access to metadata endpoints',
+  },
+  {
+    pattern: /metadata\.google/gi,
+    severity: 'critical' as const,
+    category: 'SSRF',
+    title: 'GCP Metadata Access',
+    description: 'Attempt to access GCP metadata',
+    recommendation: 'Block access to metadata endpoints',
   },
 ];
 
@@ -232,6 +467,20 @@ function determineRiskLevel(summary: SecurityReport['summary']): 'low' | 'medium
 }
 
 /**
+ * Calculate security score from summary (for backward compatibility)
+ * Score is 0-100, with deductions based on severity
+ */
+export function calculateSecurityScore(summary: SecurityReport['summary']): number {
+  let score = 100;
+  score -= summary.critical * 25;
+  score -= summary.high * 15;
+  score -= summary.medium * 8;
+  score -= summary.low * 3;
+  // info level doesn't affect score
+  return Math.max(0, score);
+}
+
+/**
  * Scan skill package for security issues
  */
 export async function scanSkill(zipBuffer: Buffer): Promise<SecurityReport> {
@@ -244,8 +493,8 @@ export async function scanSkill(zipBuffer: Buffer): Promise<SecurityReport> {
     for (const [filePath, zipEntry] of Object.entries(zip.files)) {
       if (zipEntry.dir) continue;
 
-      // Only scan text-based files
-      const textExtensions = ['.js', '.ts', '.jsx', '.tsx', '.py', '.json', '.yaml', '.yml', '.sh'];
+      // Only scan text-based files (including .md for security checks)
+      const textExtensions = ['.js', '.ts', '.jsx', '.tsx', '.py', '.json', '.yaml', '.yml', '.sh', '.md', '.markdown'];
       const isTextFile = textExtensions.some((ext) => filePath.toLowerCase().endsWith(ext));
 
       if (!isTextFile) continue;

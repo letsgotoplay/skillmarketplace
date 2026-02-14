@@ -43,6 +43,7 @@ export default function UploadSkillPage() {
         if (result.warnings) {
           setWarnings(result.warnings);
         }
+        setLoading(false);
         return;
       }
 
@@ -50,10 +51,14 @@ export default function UploadSkillPage() {
         setWarnings(result.warnings);
       }
 
-      router.push('/dashboard/skills');
+      // Redirect to skill detail page
+      if (result.skillId) {
+        router.push(`/dashboard/skills/${result.skillId}`);
+      } else {
+        router.push('/dashboard/skills');
+      }
     } catch (err) {
       setError('An unexpected error occurred');
-    } finally {
       setLoading(false);
     }
   }
@@ -96,8 +101,11 @@ export default function UploadSkillPage() {
               </div>
             )}
 
+            {/* Required Fields */}
             <div className="space-y-2">
-              <Label htmlFor="file">Skill Package (ZIP)</Label>
+              <Label htmlFor="file">
+                Skill Package (ZIP) <span className="text-destructive">*</span>
+              </Label>
               <Input
                 ref={fileInputRef}
                 id="file"
@@ -107,6 +115,9 @@ export default function UploadSkillPage() {
                 required
                 disabled={loading}
               />
+              <p className="text-xs text-muted-foreground">
+                Must contain a SKILL.md file with proper frontmatter.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -122,6 +133,68 @@ export default function UploadSkillPage() {
                 <option value="TEAM_ONLY">Team Only</option>
                 <option value="PRIVATE">Private</option>
               </select>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t pt-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Optional fields - leave empty to auto-generate from SKILL.md or AI analysis
+              </p>
+            </div>
+
+            {/* Optional Fields */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Skill Name (optional)</Label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="Will use name from SKILL.md"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <textarea
+                id="description"
+                name="description"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Will use description from SKILL.md"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Category (optional)</Label>
+              <select
+                id="category"
+                name="category"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                disabled={loading}
+              >
+                <option value="">Auto-detect by AI</option>
+                <option value="DEVELOPMENT">Development</option>
+                <option value="SECURITY">Security</option>
+                <option value="DATA_ANALYTICS">Data Analytics</option>
+                <option value="AI_ML">AI/ML</option>
+                <option value="TESTING">Testing</option>
+                <option value="INTEGRATION">Integration</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (optional)</Label>
+              <Input
+                id="tags"
+                name="tags"
+                type="text"
+                placeholder="e.g., python, automation, api (comma separated)"
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty for AI auto-generation.
+              </p>
             </div>
 
             <div className="space-y-2">
