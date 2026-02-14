@@ -25,6 +25,7 @@ model User {
   teamMembers   TeamMember[]
   skillVersions SkillVersion[]
   feedback      SkillFeedback[]
+  contributions TeamContribution[]
 
   @@map("users")
 }
@@ -48,9 +49,11 @@ model Team {
   updatedAt   DateTime    @updatedAt
 
   // Relations
-  members     TeamMember[]
-  skills      Skill[]
-  bundles     SkillBundle[]
+  members       TeamMember[]
+  skills        Skill[]
+  bundles       SkillBundle[]
+  contributions TeamContribution[]
+  activities    TeamActivity[]
 
   @@map("teams")
 }
@@ -94,12 +97,13 @@ model Skill {
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  team        Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  versions    SkillVersion[]
-  stats       SkillStat?
-  bundleSkills BundleSkill[]
-  feedback    SkillFeedback[]
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  team          Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  versions      SkillVersion[]
+  stats         SkillStat?
+  bundleSkills  BundleSkill[]
+  feedback      SkillFeedback[]
+  downloads     DownloadRecord[]
 
   @@index([authorId])
   @@index([teamId])
@@ -110,14 +114,19 @@ model Skill {
 }
 
 model SkillVersion {
-  id          String          @id @default(uuid())
-  skillId     String
-  version     String          // Semantic version (e.g., "1.0.0")
-  changelog   String?
-  filePath    String          // Path to stored zip file
-  status      SkillStatus     @default(PENDING)
-  createdAt   DateTime        @default(now())
-  createdBy   String
+  id                    String          @id @default(uuid())
+  skillId               String
+  version               String          // Semantic version (e.g., "1.0.0")
+  changelog             String?
+  filePath              String          // Path to stored zip file
+  status                SkillStatus     @default(PENDING)
+  specValidationPassed  Boolean?        @default(false)
+  specValidationErrors  Json?
+  aiSecurityAnalyzed    Boolean?        @default(false)
+  aiSecurityReport      Json?
+  processingComplete    Boolean?        @default(false)
+  createdAt             DateTime        @default(now())
+  createdBy             String
 
   // Relations
   skill       Skill           @relation(fields: [skillId], references: [id], onDelete: Cascade)
@@ -260,8 +269,9 @@ model SkillBundle {
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  team        Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  skills      BundleSkill[]
+  team    Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  skills  BundleSkill[]
+  stats   BundleStat?
 
   @@map("skill_bundles")
 }
@@ -339,4 +349,118 @@ model SkillFeedback {
   @@index([userId])
   @@index([createdAt])
   @@map("skill_feedback")
+}
+
+// ============================================
+// Skill Specifications
+// ============================================
+
+model SkillSpecification {
+  id          String   @id @default(uuid())
+  version     String
+  schema      Json
+  description String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("skill_specifications")
+}
+
+// ============================================
+// Team Contributions & Activities
+// ============================================
+
+model TeamContribution {
+  id               String            @id @default(uuid())
+  teamId           String
+  userId           String
+  contributionType ContributionType
+  resourceId       String?
+  points           Int               @default(1)
+  createdAt        DateTime          @default(now())
+
+  // Relations
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([userId])
+  @@index([teamId, userId])
+  @@map("team_contributions")
+}
+
+model TeamActivity {
+  id          String   @id @default(uuid())
+  teamId      String
+  userId      String?
+  action      String
+  description String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([createdAt])
+  @@map("team_activities")
+}
+
+// ============================================
+// Download Tracking
+// ============================================
+
+model DownloadRecord {
+  id            String        @id @default(uuid())
+  skillId       String
+  userId        String?
+  version       String
+  downloadType  DownloadType
+  createdAt     DateTime      @default(now())
+
+  // Relations
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([skillId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("download_records")
+}
+
+// ============================================
+// Bundle Statistics
+// ============================================
+
+model BundleStat {
+  id                String      @id @default(uuid())
+  bundleId          String      @unique
+  downloadsCount    Int         @default(0)
+  viewsCount        Int         @default(0)
+  lastDownloadedAt  DateTime?
+  lastViewedAt      DateTime?
+
+  // Relations
+  bundle SkillBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+
+  @@map("bundle_stats")
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum ContributionType {
+  SKILL_UPLOADED
+  SKILL_DOWNLOADED
+  EVAL_RUN
+  SECURITY_SCAN
+  BUNDLE_CREATED
+  MEMBER_ADDED
+}
+
+enum DownloadType {
+  FULL_ZIP
+  SKILL_MD
+  SCRIPTS_ZIP
+  BUNDLE_ZIP
 }

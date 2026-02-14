@@ -1,4 +1,5 @@
-import { SecurityFinding, SecurityReport } from './scanner';
+import { randomUUID } from 'crypto';
+import { SecurityFinding } from './scanner';
 
 // Known vulnerable packages (simplified - in production, use a CVE database)
 const KNOWN_VULNERABILITIES: Record<string, Array<{ versions: string; severity: 'critical' | 'high' | 'medium' | 'low'; description: string }>> = {
@@ -72,12 +73,14 @@ export function scanDependencies(
     for (const vuln of vulns) {
       if (isVulnerable(version, vuln.versions)) {
         findings.push({
+          id: randomUUID(),
           severity: vuln.severity,
           category: 'Vulnerable Dependency',
           title: `Vulnerable Package: ${name}`,
           description: vuln.description,
           file: 'package.json',
           recommendation: `Update ${name} to a patched version or find an alternative`,
+          source: 'pattern',
         });
       }
     }
@@ -95,12 +98,14 @@ export async function scanPackageJson(content: string): Promise<SecurityFinding[
   const parsed = parsePackageJson(content);
   if (!parsed) {
     findings.push({
+      id: randomUUID(),
       severity: 'medium',
       category: 'Configuration',
       title: 'Invalid package.json',
       description: 'Could not parse package.json',
       file: 'package.json',
       recommendation: 'Ensure package.json is valid JSON',
+      source: 'pattern',
     });
     return findings;
   }
@@ -113,12 +118,14 @@ export async function scanPackageJson(content: string): Promise<SecurityFinding[
   const content_lower = content.toLowerCase();
   if (content_lower.includes('curl') || content_lower.includes('wget')) {
     findings.push({
+      id: randomUUID(),
       severity: 'high',
       category: 'Suspicious Scripts',
       title: 'Network Command in Scripts',
       description: 'Found curl or wget in package scripts',
       file: 'package.json',
       recommendation: 'Review scripts for malicious behavior',
+      source: 'pattern',
     });
   }
 
