@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Code, FileText, Download } from 'lucide-react';
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Code, FileText, Download, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -198,9 +198,46 @@ interface FilePreviewProps {
   skillId?: string;
   skillDescription?: string;
   fileContent?: string | null;
+  showDownloadButton?: boolean;
 }
 
-function FilePreview({ filename, fileType, skillDescription, fileContent }: FilePreviewProps) {
+// Copy button component for text content
+function CopyContentButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      console.error('Failed to copy');
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleCopy}
+      className="h-6 px-2"
+    >
+      {copied ? (
+        <>
+          <Check className="h-3 w-3 mr-1 text-green-500" />
+          <span className="text-xs">Copied</span>
+        </>
+      ) : (
+        <>
+          <Copy className="h-3 w-3 mr-1" />
+          <span className="text-xs">Copy</span>
+        </>
+      )}
+    </Button>
+  );
+}
+
+function FilePreview({ filename, fileType, skillDescription, fileContent, showDownloadButton = true }: FilePreviewProps) {
   const { data: session } = useSession();
   const category = getFileCategory(filename, fileType);
   const ext = getFileExtension(filename);
@@ -209,16 +246,21 @@ function FilePreview({ filename, fileType, skillDescription, fileContent }: File
   if (filename === 'SKILL.md' && skillDescription && !fileContent) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <FileText className="h-4 w-4" />
-          <span>{filename}</span>
-          <span className="text-xs">• Documentation</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <FileText className="h-4 w-4" />
+            <span>{filename}</span>
+            <span className="text-xs">• Documentation</span>
+          </div>
+          {skillDescription && <CopyContentButton content={skillDescription} />}
         </div>
         <div className="bg-muted/30 rounded-lg p-4 prose prose-sm dark:prose-invert max-w-none">
           <p className="text-sm whitespace-pre-wrap">{skillDescription}</p>
-          <p className="text-xs text-muted-foreground mt-4 italic">
-            This is the skill description from SKILL.md. Download the full file for complete documentation.
-          </p>
+          {showDownloadButton && (
+            <p className="text-xs text-muted-foreground mt-4 italic">
+              This is the skill description from SKILL.md. Download the full file for complete documentation.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -228,10 +270,13 @@ function FilePreview({ filename, fileType, skillDescription, fileContent }: File
   if (category === 'markdown' && fileContent) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <FileText className="h-4 w-4" />
-          <span>{filename}</span>
-          <span className="text-xs">• Markdown</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <FileText className="h-4 w-4" />
+            <span>{filename}</span>
+            <span className="text-xs">• Markdown</span>
+          </div>
+          <CopyContentButton content={fileContent} />
         </div>
         <div className="bg-muted/30 rounded-lg overflow-hidden">
           <pre className="p-4 text-sm overflow-auto max-h-[400px] whitespace-pre-wrap break-words">
@@ -260,10 +305,13 @@ function FilePreview({ filename, fileType, skillDescription, fileContent }: File
 
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Code className="h-4 w-4" />
-          <span>{filename}</span>
-          <span className="text-xs">• {language}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Code className="h-4 w-4" />
+            <span>{filename}</span>
+            <span className="text-xs">• {language}</span>
+          </div>
+          <CopyContentButton content={fileContent} />
         </div>
         <div className="bg-muted/30 rounded-lg overflow-hidden">
           <pre className="p-4 text-sm overflow-auto max-h-[400px]">
@@ -278,10 +326,13 @@ function FilePreview({ filename, fileType, skillDescription, fileContent }: File
   if (category === 'config' && fileContent) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <File className="h-4 w-4" />
-          <span>{filename}</span>
-          <span className="text-xs">• Configuration</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <File className="h-4 w-4" />
+            <span>{filename}</span>
+            <span className="text-xs">• Configuration</span>
+          </div>
+          <CopyContentButton content={fileContent} />
         </div>
         <div className="bg-muted/30 rounded-lg overflow-hidden">
           <pre className="p-4 text-sm overflow-auto max-h-[400px]">
@@ -296,10 +347,13 @@ function FilePreview({ filename, fileType, skillDescription, fileContent }: File
   if (category === 'data' && fileContent) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <File className="h-4 w-4" />
-          <span>{filename}</span>
-          <span className="text-xs">• Data</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <File className="h-4 w-4" />
+            <span>{filename}</span>
+            <span className="text-xs">• Data</span>
+          </div>
+          <CopyContentButton content={fileContent} />
         </div>
         <div className="bg-muted/30 rounded-lg overflow-hidden">
           <pre className="p-4 text-sm overflow-auto max-h-[400px]">
@@ -325,17 +379,19 @@ function FilePreview({ filename, fileType, skillDescription, fileContent }: File
         </div>
         <p className="text-sm text-muted-foreground mb-3">
           Preview is not available for this file type.
-          {session ? ' Download the skill to access this file.' : ' Sign in to download and access this file.'}
+          {showDownloadButton && (session ? ' Download the skill to access this file.' : ' Sign in to download and access this file.')}
         </p>
-        {session ? (
-          <Button variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Download Skill
-          </Button>
-        ) : (
-          <Button variant="outline" size="sm" asChild>
-            <a href="/login">Sign in to Download</a>
-          </Button>
+        {showDownloadButton && (
+          session ? (
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              Download Skill
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" asChild>
+              <a href="/login">Sign in to Download</a>
+            </Button>
+          )
         )}
       </div>
     </div>
@@ -346,9 +402,10 @@ interface SkillFileBrowserProps {
   files: { filePath: string; fileType: string; sizeBytes: number; content?: string | null }[];
   skillId?: string;
   skillDescription?: string;
+  showDownloadButton?: boolean;
 }
 
-export function SkillFileBrowser({ files, skillId, skillDescription }: SkillFileBrowserProps) {
+export function SkillFileBrowser({ files, skillId, skillDescription, showDownloadButton = true }: SkillFileBrowserProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['']));
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
@@ -403,6 +460,7 @@ export function SkillFileBrowser({ files, skillId, skillDescription }: SkillFile
             skillId={skillId}
             skillDescription={skillDescription}
             fileContent={selectedFileContent}
+            showDownloadButton={showDownloadButton}
           />
         </div>
       )}

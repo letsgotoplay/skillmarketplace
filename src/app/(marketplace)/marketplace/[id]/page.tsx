@@ -41,13 +41,13 @@ const testStatusColors: Record<string, string> = {
 export default async function MarketplaceSkillPage({
   params,
 }: {
-  params: { slug: string };
+  params: { id: string };
 }) {
   const session = await getServerSession(authOptions);
 
   const skill = await prisma.skill.findFirst({
     where: {
-      slug: params.slug,
+      id: params.id,
       visibility: 'PUBLIC',
     },
     include: {
@@ -90,7 +90,7 @@ export default async function MarketplaceSkillPage({
   const latestEval = latestVersion?.evals[0];
   const latestScan = latestVersion?.scans[0];
   const files = latestVersion?.files || [];
-  const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/marketplace/${skill.slug}`;
+  const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/marketplace/${skill.id}`;
 
   return (
     <div className="container mx-auto py-8">
@@ -190,6 +190,7 @@ export default async function MarketplaceSkillPage({
                   }))}
                   skillId={skill.id}
                   skillDescription={skill.description || undefined}
+                  showDownloadButton={false}
                 />
               </CardContent>
             </Card>

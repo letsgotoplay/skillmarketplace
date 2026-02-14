@@ -151,7 +151,7 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <Link href={`/marketplace/${skill.slug}`} className="flex-1">
+                  <Link href={`/marketplace/${skill.id}`} className="flex-1">
                     <Button variant="outline" className="w-full">
                       View Details
                     </Button>

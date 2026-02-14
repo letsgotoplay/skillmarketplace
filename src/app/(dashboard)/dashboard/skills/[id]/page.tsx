@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { SkillDetailTabs } from '@/components/skills/skill-detail-tabs';
+import { NewVersionDialog } from '@/components/skills/new-version-dialog';
 
 const visibilityColors: Record<string, string> = {
   PUBLIC: 'bg-green-100 text-green-700',
@@ -139,6 +140,13 @@ export default async function SkillDetailPage({
           <Link href="/dashboard/skills">
             <Button variant="outline">Back to Skills</Button>
           </Link>
+          {skill.authorId === session.user.id && (
+            <NewVersionDialog
+              skillId={skill.id}
+              skillName={skill.name}
+              currentVersion={skill.versions[0]?.version || '0.0.0'}
+            />
+          )}
           <Link href={`/api/skills/${skill.id}/download`}>
             <Button>Download</Button>
           </Link>

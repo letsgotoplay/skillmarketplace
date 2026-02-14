@@ -17,6 +17,7 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
+  Copy,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -207,6 +208,35 @@ function FileTreeItem({
   );
 }
 
+// Copy button for file viewer
+function FileCopyButton({ content }: { content: string }) {
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      console.error('Failed to copy');
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1 hover:bg-muted rounded transition-colors"
+      title={copied ? 'Copied!' : 'Copy to clipboard'}
+    >
+      {copied ? (
+        <CheckCircle className="h-4 w-4 text-green-500" />
+      ) : (
+        <Copy className="h-4 w-4 text-muted-foreground" />
+      )}
+    </button>
+  );
+}
+
 function FileViewer({ file }: { file: FileNode | null }) {
   if (!file) {
     return (
@@ -225,13 +255,18 @@ function FileViewer({ file }: { file: FileNode | null }) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b p-2 flex items-center gap-2 text-sm">
-        <FileText className="h-4 w-4" />
-        <span className="font-medium">{file.name}</span>
-        {file.size !== undefined && (
-          <span className="text-muted-foreground">
-            ({(file.size / 1024).toFixed(1)} KB)
-          </span>
+      <div className="border-b p-2 flex items-center justify-between text-sm">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          <span className="font-medium">{file.name}</span>
+          {file.size !== undefined && (
+            <span className="text-muted-foreground">
+              ({(file.size / 1024).toFixed(1)} KB)
+            </span>
+          )}
+        </div>
+        {!isBinary && file.content && (
+          <FileCopyButton content={file.content} />
         )}
       </div>
       <div className="flex-1 overflow-auto">
