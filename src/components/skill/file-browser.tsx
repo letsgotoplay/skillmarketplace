@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Code, FileText, Download, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { MAX_CONTENT_SIZE, TEXT_FILE_EXTENSIONS, formatFileSize } from '@/lib/config/file-preview';
 
 interface FileNode {
   name: string;
@@ -58,12 +59,6 @@ function buildFileTree(files: { filePath: string; fileType: string; sizeBytes: n
   sortChildren(root);
 
   return root;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function getFileExtension(filename: string): string {
@@ -125,7 +120,7 @@ interface FileTreeProps {
   expandedFolders: Set<string>;
   onToggle: (path: string) => void;
   selectedFile: string | null;
-  onSelectFile: (path: string, name: string, fileType?: string, content?: string | null) => void;
+  onSelectFile: (path: string, name: string, fileType?: string, content?: string | null, sizeBytes?: number) => void;
 }
 
 function FileTreeNode({ node, level, expandedFolders, onToggle, selectedFile, onSelectFile }: FileTreeProps) {
@@ -178,7 +173,7 @@ function FileTreeNode({ node, level, expandedFolders, onToggle, selectedFile, on
         isSelected && 'bg-primary/10 text-primary'
       )}
       style={{ paddingLeft: paddingLeft + 16 }}
-      onClick={() => onSelectFile(node.path, node.name, node.fileType, node.content)}
+      onClick={() => onSelectFile(node.path, node.name, node.fileType, node.content, node.sizeBytes)}
     >
       <span className="shrink-0">{getFileIcon(node.name)}</span>
       <span className="truncate">{node.name}</span>
@@ -195,10 +190,17 @@ interface FilePreviewProps {
   filename: string;
   fileType?: string;
   filePath?: string;
+  fileSize?: number;
   skillId?: string;
   skillDescription?: string;
   fileContent?: string | null;
   showDownloadButton?: boolean;
+}
+
+// Check if file is a text file type using the config
+function isTextFile(filename: string): boolean {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  return TEXT_FILE_EXTENSIONS.has(ext);
 }
 
 // Copy button component for text content
@@ -237,10 +239,14 @@ function CopyContentButton({ content }: { content: string }) {
   );
 }
 
-function FilePreview({ filename, fileType, skillDescription, fileContent, showDownloadButton = true }: FilePreviewProps) {
+function FilePreview({ filename, fileType, fileSize, skillDescription, fileContent, showDownloadButton = true }: FilePreviewProps) {
   const { data: session } = useSession();
   const category = getFileCategory(filename, fileType);
   const ext = getFileExtension(filename);
+
+  // Check if file is too large for preview
+  const isTooLarge = fileSize && fileSize > MAX_CONTENT_SIZE;
+  const isText = isTextFile(filename);
 
   // For SKILL.md, show the skill description as a preview if no content available
   if (filename === 'SKILL.md' && skillDescription && !fileContent) {
@@ -365,12 +371,24 @@ function FilePreview({ filename, fileType, skillDescription, fileContent, showDo
   }
 
   // Fallback for files without content or unrecognized types
+  // Show different message for large text files
+  const getPreviewMessage = () => {
+    if (isTooLarge && isText) {
+      return `This file is too large to preview (${(fileSize! / 1024).toFixed(1)} KB). Maximum preview size is ${MAX_CONTENT_SIZE / 1024} KB. Download the skill to view the full file.`;
+    }
+    if (!fileContent && isText) {
+      return 'File content is not available for preview. Download the skill to access this file.';
+    }
+    return 'Preview is not available for this file type.';
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <File className="h-4 w-4" />
         <span>{filename}</span>
-        {fileType && <span className="text-xs">• {fileType}</span>}
+        {fileSize && <span className="text-xs">• {(fileSize / 1024).toFixed(1)} KB</span>}
+        {isTooLarge && isText && <span className="text-xs text-yellow-600">• Too large for preview</span>}
       </div>
       <div className="bg-muted/30 rounded-lg p-4">
         <div className="flex items-center gap-2 text-muted-foreground mb-2">
@@ -378,8 +396,7 @@ function FilePreview({ filename, fileType, skillDescription, fileContent, showDo
           <span className="font-medium">File Preview</span>
         </div>
         <p className="text-sm text-muted-foreground mb-3">
-          Preview is not available for this file type.
-          {showDownloadButton && (session ? ' Download the skill to access this file.' : ' Sign in to download and access this file.')}
+          {getPreviewMessage()}
         </p>
         {showDownloadButton && (
           session ? (
@@ -411,6 +428,7 @@ export function SkillFileBrowser({ files, skillId, skillDescription, showDownloa
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFileType, setSelectedFileType] = useState<string | undefined>();
   const [selectedFileContent, setSelectedFileContent] = useState<string | null | undefined>();
+  const [selectedFileSize, setSelectedFileSize] = useState<number | undefined>();
 
   const tree = buildFileTree(files);
 
@@ -426,11 +444,12 @@ export function SkillFileBrowser({ files, skillId, skillDescription, showDownloa
     });
   };
 
-  const handleSelectFile = (path: string, name: string, fileType?: string, content?: string | null) => {
+  const handleSelectFile = (path: string, name: string, fileType?: string, content?: string | null, sizeBytes?: number) => {
     setSelectedFile(path);
     setSelectedFileName(name);
     setSelectedFileType(fileType);
     setSelectedFileContent(content);
+    setSelectedFileSize(sizeBytes);
   };
 
   return (
@@ -457,6 +476,7 @@ export function SkillFileBrowser({ files, skillId, skillDescription, showDownloa
             filename={selectedFileName}
             fileType={selectedFileType}
             filePath={selectedFile}
+            fileSize={selectedFileSize}
             skillId={skillId}
             skillDescription={skillDescription}
             fileContent={selectedFileContent}

@@ -13,6 +13,7 @@ import { queueEvaluation } from '@/lib/eval/queue';
 import { parseTestConfig } from '@/lib/skills/validation';
 import { getStorageProvider } from '@/lib/storage/provider';
 import { recordContribution } from '@/lib/teams/contributions';
+import { getTextContent } from '@/lib/config/file-preview';
 
 export interface UploadResult {
   success: boolean;
@@ -209,13 +210,14 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
 
     versionId = skillVersion.id;
 
-    // Create skill files records
+    // Create skill files records with content for text files
     await prisma.skillFile.createMany({
       data: parsedSkill.files.map((f) => ({
         skillVersionId: skillVersion.id,
         filePath: f.path,
         fileType: f.type,
         sizeBytes: f.size,
+        content: getTextContent(f.content, f.path, f.size),
       })),
     });
 
@@ -528,13 +530,14 @@ export async function uploadSkillVersion(
 
     versionId = skillVersion.id;
 
-    // Create skill files records
+    // Create skill files records with content for text files
     await prisma.skillFile.createMany({
       data: parsedSkill.files.map((f) => ({
         skillVersionId: skillVersion.id,
         filePath: f.path,
         fileType: f.type,
         sizeBytes: f.size,
+        content: getTextContent(f.content, f.path, f.size),
       })),
     });
 
