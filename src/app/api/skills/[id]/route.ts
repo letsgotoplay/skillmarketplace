@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getAuthUser, type AuthUser } from '@/lib/auth/api-auth';
 import { prisma } from '@/lib/db';
-import { readFile } from 'fs/promises';
-import { notFound } from 'next/navigation';
+
+// Helper to get user ID from either session or API token
+async function getUserId(request: NextRequest): Promise<{ userId: string | null; authUser: AuthUser | null }> {
+  const session = await getServerSession(authOptions);
+  const authUser = await getAuthUser(request);
+  const userId = session?.user?.id || authUser?.id || null;
+  return { userId, authUser };
+}
 
 /**
  * @openapi
@@ -93,7 +100,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const { userId } = await getUserId(request);
 
   const skill = await prisma.skill.findUnique({
     where: { id },
@@ -114,15 +121,15 @@ export async function GET(
 
   // Check access
   if (skill.visibility !== 'PUBLIC') {
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (skill.authorId !== session.user.id && skill.teamId) {
+    if (skill.authorId !== userId && skill.teamId) {
       const membership = await prisma.teamMember.findFirst({
         where: {
           teamId: skill.teamId,
-          userId: session.user.id,
+          userId: userId,
         },
       });
 
@@ -149,9 +156,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const { userId } = await getUserId(request);
 
-  if (!session?.user?.id) {
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -164,7 +171,7 @@ export async function DELETE(
   }
 
   // Check ownership
-  if (skill.authorId !== session.user.id) {
+  if (skill.authorId !== userId) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
@@ -175,7 +182,7 @@ export async function DELETE(
   // Create audit log
   await prisma.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: userId,
       action: 'DELETE_SKILL',
       resource: 'skill',
       resourceId: id,
@@ -236,9 +243,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const { userId } = await getUserId(request);
 
-  if (!session?.user?.id) {
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -251,7 +258,7 @@ export async function PATCH(
   }
 
   // Check ownership
-  if (skill.authorId !== session.user.id) {
+  if (skill.authorId !== userId) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
@@ -273,7 +280,7 @@ export async function PATCH(
   if (visibility === 'TEAM_ONLY') {
     // Check if user has any team
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id },
+      where: { userId: userId },
       select: { teamId: true },
     });
 
@@ -287,7 +294,7 @@ export async function PATCH(
     // Use the provided teamId or the user's first team
     if (teamId) {
       const teamMembership = await prisma.teamMember.findFirst({
-        where: { userId: session.user.id, teamId },
+        where: { userId: userId, teamId },
       });
       if (!teamMembership) {
         return NextResponse.json(
@@ -320,7 +327,7 @@ export async function PATCH(
   // Create audit log
   await prisma.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: userId,
       action: 'SKILL_VISIBILITY_CHANGED',
       resource: 'skill',
       resourceId: id,

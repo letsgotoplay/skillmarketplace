@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth/api-auth';
 import { prisma } from '@/lib/db';
 import { getStorageProvider } from '@/lib/storage/provider';
 import { recordContribution } from '@/lib/teams/contributions';
@@ -8,6 +9,13 @@ import JSZip from 'jszip';
 import { DownloadType, ContributionType } from '@prisma/client';
 
 type DownloadTypeParam = 'full' | 'md' | 'scripts';
+
+// Helper to get user ID from either session or API token
+async function getUserId(request: NextRequest): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  const authUser = await getAuthUser(request);
+  return session?.user?.id || authUser?.id || null;
+}
 
 /**
  * @openapi
@@ -270,7 +278,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const userId = await getUserId(request);
 
   const { searchParams } = new URL(request.url);
   const version = searchParams.get('version');
@@ -297,15 +305,15 @@ export async function GET(
 
   // Check access
   if (skill.visibility !== 'PUBLIC') {
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (skill.authorId !== session.user.id && skill.teamId) {
+    if (skill.authorId !== userId && skill.teamId) {
       const membership = await prisma.teamMember.findFirst({
         where: {
           teamId: skill.teamId,
-          userId: session.user.id,
+          userId: userId,
         },
       });
 
@@ -333,13 +341,13 @@ export async function GET(
     };
 
     // Track download
-    await trackDownload(skill.id, skillVersion.version, downloadTypeMap[type], session?.user?.id);
+    await trackDownload(skill.id, skillVersion.version, downloadTypeMap[type], userId || undefined);
 
     // Create audit log
-    if (session?.user?.id) {
+    if (userId) {
       await prisma.auditLog.create({
         data: {
-          userId: session.user.id,
+          userId: userId,
           action: 'DOWNLOAD_SKILL',
           resource: 'skill',
           resourceId: skill.id,
@@ -352,14 +360,14 @@ export async function GET(
         const membership = await prisma.teamMember.findFirst({
           where: {
             teamId: skill.teamId,
-            userId: session.user.id,
+            userId: userId,
           },
         });
 
         if (membership) {
           await recordContribution(
             skill.teamId,
-            session.user.id,
+            userId,
             ContributionType.SKILL_DOWNLOADED,
             skill.id
           );

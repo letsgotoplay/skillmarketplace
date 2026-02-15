@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth/api-auth';
 import { getSkills } from '@/app/actions/skills';
 import { NextResponse } from 'next/server';
 import { Category } from '@prisma/client';
@@ -67,7 +68,9 @@ export async function GET(request: Request) {
   const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
   // For public API, only show public skills
+  // Support both session auth and API token auth
   const session = await getServerSession(authOptions);
+  const authUser = await getAuthUser(request);
 
   // Build options
   const options: Parameters<typeof getSkills>[0] = {
@@ -78,12 +81,12 @@ export async function GET(request: Request) {
   };
 
   // If "mine" is specified, show user's own skills
-  if (mine && session?.user?.id) {
-    options.authorId = session.user.id;
+  if (mine && (session?.user?.id || authUser?.id)) {
+    options.authorId = session?.user?.id || authUser?.id;
   }
   // Otherwise, apply visibility filter
   else {
-    options.visibility = visibility && session ? visibility : 'PUBLIC';
+    options.visibility = visibility && (session || authUser) ? visibility : 'PUBLIC';
   }
 
   const result = await getSkills(options);

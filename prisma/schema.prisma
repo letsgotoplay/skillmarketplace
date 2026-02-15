@@ -27,6 +27,9 @@ model User {
   feedback      SkillFeedback[]
   contributions TeamContribution[]
 
+  // CLI API Tokens relation
+  apiTokens     ApiToken[]
+
   @@map("users")
 }
 
@@ -34,6 +37,40 @@ enum UserRole {
   USER
   TEAM_ADMIN
   ADMIN
+}
+
+// ============================================
+// API Tokens (for CLI authentication)
+// ============================================
+
+model ApiToken {
+  id          String        @id @default(uuid())
+  userId      String
+  name        String        // User-defined token name (e.g., "CI/CD", "Laptop")
+  tokenHash   String        @unique  // SHA-256 hash of the token
+  tokenPrefix String                 // First 8 chars for identification
+  scopes      TokenScope[]           // Granular permissions
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?              // Optional expiration
+  createdAt   DateTime      @default(now())
+  revokedAt   DateTime?              // For token revocation
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("api_tokens")
+}
+
+enum TokenScope {
+  SKILL_READ        // Read skill info, download skills
+  SKILL_WRITE       // Upload, update skills
+  SKILL_DELETE      // Delete skills
+  BUNDLE_READ       // Read bundles
+  BUNDLE_WRITE      // Create, update bundles
+  TEAM_READ         // Read team info
+  ADMIN             // Full admin access
 }
 
 // ============================================
