@@ -12,6 +12,7 @@ import { check } from './commands/check.js';
 import { update } from './commands/update.js';
 import { completion } from './commands/completion.js';
 import { isAuthenticated } from './api/client.js';
+import { checkForUpdates, showUpdateNotification } from './lib/update-check.js';
 
 const program = new Command();
 
@@ -19,6 +20,15 @@ program
   .name('skillhub')
   .description('CLI tool for SkillHub enterprise skill marketplace')
   .version('1.0.0');
+
+// Check for updates in background
+checkForUpdates().then((updateInfo) => {
+  if (updateInfo?.hasUpdate) {
+    showUpdateNotification(updateInfo);
+  }
+}).catch(() => {
+  // Silently ignore update check errors
+});
 
 // Login command
 program
