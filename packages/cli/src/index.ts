@@ -7,6 +7,9 @@ import { search, info } from './commands/search.js';
 import { list } from './commands/list.js';
 import { add } from './commands/add.js';
 import { remove } from './commands/remove.js';
+import { upload } from './commands/upload.js';
+import { check } from './commands/check.js';
+import { update } from './commands/update.js';
 import { isAuthenticated } from './api/client.js';
 
 const program = new Command();
@@ -48,10 +51,12 @@ program
   .description('Search for skills in the marketplace')
   .option('-l, --limit <number>', 'Maximum number of results', '20')
   .option('-c, --category <category>', 'Filter by category')
-  .action(async (query: string, options: { limit: string; category?: string }) => {
+  .option('-j, --json', 'Output as JSON')
+  .action(async (query: string, options: { limit: string; category?: string; json?: boolean }) => {
     await search(query, {
       limit: parseInt(options.limit),
       category: options.category,
+      json: options.json,
     });
   });
 
@@ -59,8 +64,9 @@ program
 program
   .command('info <skill>')
   .description('Get detailed information about a skill')
-  .action(async (skillSlug: string) => {
-    await info(skillSlug);
+  .option('-j, --json', 'Output as JSON')
+  .action(async (skillSlug: string, options: { json?: boolean }) => {
+    await info(skillSlug, options);
   });
 
 // List command
@@ -114,9 +120,45 @@ program
     });
   });
 
+// Upload command
+program
+  .command('upload <file>')
+  .description('Upload a skill package to the marketplace')
+  .option('-n, --name <name>', 'Skill name')
+  .option('-v, --version <version>', 'Skill version')
+  .option('-d, --description <description>', 'Skill description')
+  .action(async (filePath: string, options: { name?: string; version?: string; description?: string }) => {
+    await upload(filePath, options);
+  });
+
+// Check command
+program
+  .command('check')
+  .description('Check for available updates')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (options: { json?: boolean }) => {
+    await check(options);
+  });
+
+// Update command
+program
+  .command('update [skill]')
+  .description('Update installed skills')
+  .option('-g, --global', 'Update global installation')
+  .option('-a, --agents <agents>', 'Update for specific agents (comma-separated)')
+  .option('--all', 'Update for all agents')
+  .action(async (skillSlug: string | undefined, options: { global?: boolean; agents?: string; all?: boolean }) => {
+    const agents = options.agents ? options.agents.split(',') : undefined;
+    await update(skillSlug, {
+      global: options.global,
+      agents,
+      all: options.all,
+    });
+  });
+
 // Add error handling for unauthenticated commands
 program.hook('preAction', async (_thisCommand, actionCommand) => {
-  const commandsRequiringAuth = ['add', 'remove', 'upload'];
+  const commandsRequiringAuth = ['add', 'remove', 'upload', 'check', 'update'];
   const commandName = actionCommand.name();
 
   if (commandsRequiringAuth.includes(commandName) && !isAuthenticated()) {

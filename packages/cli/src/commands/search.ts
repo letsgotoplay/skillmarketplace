@@ -4,7 +4,17 @@ import ora from 'ora';
 import { apiRequest, isAuthenticated } from '../api/client.js';
 import type { SkillListResponse } from '../api/types.js';
 
-export async function search(query: string, options: { limit?: number; category?: string } = {}): Promise<void> {
+interface SearchOptions {
+  limit?: number;
+  category?: string;
+  json?: boolean;
+}
+
+interface InfoOptions {
+  json?: boolean;
+}
+
+export async function search(query: string, options: SearchOptions = {}): Promise<void> {
   const spinner = ora('Searching skills...').start();
 
   const params = new URLSearchParams();
@@ -40,6 +50,12 @@ export async function search(query: string, options: { limit?: number; category?
     return;
   }
 
+  // JSON output
+  if (options.json) {
+    console.log(JSON.stringify({ total, skills }, null, 2));
+    return;
+  }
+
   console.log(chalk.blue(`\nFound ${total} skill(s)\n`));
 
   const table = new Table({
@@ -61,7 +77,7 @@ export async function search(query: string, options: { limit?: number; category?
   console.log();
 }
 
-export async function info(skillSlug: string): Promise<void> {
+export async function info(skillSlug: string, options: InfoOptions = {}): Promise<void> {
   const spinner = ora(`Fetching skill "${skillSlug}"...`).start();
 
   // First search by slug
@@ -79,6 +95,12 @@ export async function info(skillSlug: string): Promise<void> {
 
   const skill = response.data.skills[0];
   spinner.succeed('Skill found');
+
+  // JSON output
+  if (options.json) {
+    console.log(JSON.stringify(skill, null, 2));
+    return;
+  }
 
   console.log();
   console.log(chalk.blue.bold(skill.name));

@@ -123,3 +123,133 @@ export async function downloadFile(url: string): Promise<Buffer> {
 
   return Buffer.concat(chunks);
 }
+
+// Upload response type
+export interface UploadResponse {
+  id: string;
+  name: string;
+  version: string;
+  status: string;
+  securityScanStatus?: string;
+}
+
+// Skill for updates/check
+export interface SkillUpdate {
+  id: string;
+  name: string;
+  slug: string;
+  version: string;
+  installedVersion?: string;
+  hasUpdate: boolean;
+}
+
+// API Client class
+class ApiClient {
+  private getConfig(): SkillHubConfig {
+    return getConfig();
+  }
+
+  public getApiUrl(): string {
+    return this.getConfig().apiUrl;
+  }
+
+  public async getSkills(params: { query?: string; limit?: number; category?: string }): Promise<{ skills: unknown[] }> {
+    const searchParams = new URLSearchParams();
+    if (params.query) searchParams.set('search', params.query);
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.category) searchParams.set('category', params.category);
+
+    const response = await apiRequest<{ skills: unknown[] }>(`/api/skills?${searchParams.toString()}`);
+    if (response.error) {
+      throw new Error(response.error.error || 'Failed to fetch skills');
+    }
+    return response.data!;
+  }
+
+  public async getSkill(id: string): Promise<unknown> {
+    const response = await apiRequest<unknown>(`/api/skills/${id}`);
+    if (response.error) {
+      throw new Error(response.error.error || 'Failed to fetch skill');
+    }
+    return response.data!;
+  }
+
+  public async getSkillBySlug(slug: string): Promise<unknown> {
+    const response = await apiRequest<unknown>(`/api/cli/skills/by-slug/${slug}`);
+    if (response.error) {
+      throw new Error(response.error.error || 'Failed to fetch skill');
+    }
+    return response.data!;
+  }
+
+  public async downloadSkill(skillId: string, version?: string): Promise<{ buffer: Buffer; filename: string }> {
+    const cfg = this.getConfig();
+    let url = `${cfg.apiUrl}/api/skills/${skillId}/download`;
+    if (version) {
+      url += `?version=${version}`;
+    }
+
+    const response = await request(url, {
+      method: 'GET',
+      headers: cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {},
+    });
+
+    if (response.statusCode !== 200) {
+      throw new Error(`Download failed with status ${response.statusCode}`);
+    }
+
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.body) {
+      chunks.push(chunk);
+    }
+
+    // Get filename from content-disposition header
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = 'skill.zip';
+    if (contentDisposition) {
+      const headerValue = Array.isArray(contentDisposition) ? contentDisposition[0] : contentDisposition;
+      const match = headerValue.match(/filename="?(.+)"?/);
+      if (match) {
+        filename = match[1];
+      }
+    }
+
+    return { buffer: Buffer.concat(chunks), filename };
+  }
+
+  public async uploadSkill(formData: FormData): Promise<UploadResponse> {
+    const cfg = this.getConfig();
+    const url = `${cfg.apiUrl}/api/skills`;
+
+    const response = await request(url, {
+      method: 'POST',
+      headers: cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {},
+      body: formData,
+    });
+
+    const responseBody = await response.body.text();
+    let data: UploadResponse;
+
+    try {
+      data = JSON.parse(responseBody);
+    } catch {
+      throw new Error('Invalid response from server');
+    }
+
+    if (response.statusCode >= 400) {
+      throw new Error((data as unknown as ApiError).error || 'Upload failed');
+    }
+
+    return data;
+  }
+
+  public async checkVersion(): Promise<{ user: { email: string }; marketplace: { name: string } }> {
+    const response = await apiRequest<{ user: { email: string }; marketplace: { name: string } }>('/api/cli/version');
+    if (response.error) {
+      throw new Error(response.error.error || 'Failed to verify token');
+    }
+    return response.data!;
+  }
+}
+
+export const apiClient = new ApiClient();
