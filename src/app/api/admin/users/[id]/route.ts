@@ -73,6 +73,29 @@ export async function PATCH(
     const body = await request.json();
     const { role, name } = body;
 
+    // Get the user's current role for comparison
+    const currentUser = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Prevent demoting the last admin
+    if (role && currentUser.role === 'ADMIN' && role !== 'ADMIN') {
+      const adminCount = await prisma.user.count({
+        where: { role: 'ADMIN' },
+      });
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot demote the last admin' },
+          { status: 400 }
+        );
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id },
       data: {
@@ -87,6 +110,21 @@ export async function PATCH(
         updatedAt: true,
       },
     });
+
+    // Create audit log if role changed
+    if (role && role !== currentUser.role) {
+      await prisma.auditLog.create({
+        data: {
+          action: 'USER_ROLE_CHANGED',
+          resource: 'user',
+          resourceId: id,
+          metadata: {
+            oldRole: currentUser.role,
+            newRole: role,
+          },
+        },
+      });
+    }
 
     return NextResponse.json(user);
   } catch (error) {

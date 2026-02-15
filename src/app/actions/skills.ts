@@ -114,12 +114,10 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
     if (!formData.get('category') || tags.length === 0) {
       console.log('[Upload] Running AI metadata analysis for auto-categorization...');
       try {
-        const parsedSkillForAnalysis = await parseSkillZip(buffer);
         const metadataResult = await analyzeSkillMetadata(
           buffer,
           metadata.name,
-          metadata.description,
-          parsedSkillForAnalysis
+          metadata.description
         );
 
         // Use AI-suggested category if user didn't provide one
@@ -614,7 +612,7 @@ async function triggerSecurityAnalysis(
 
     // Step 2: AI Security Analysis
     console.log('[SecurityAnalysis] Running AI security analysis...');
-    const aiReport = await analyzeWithAI(buffer, parsedSkill);
+    const aiReport = await analyzeWithAI(buffer);
     await prisma.skillVersion.update({
       where: { id: skillVersionId },
       data: {

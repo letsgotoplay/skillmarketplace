@@ -315,6 +315,38 @@ const content = fs.readFileSync('../../../etc/passwd', 'utf8');
       const lowReport = await scanSkill(lowBuffer);
       expect(lowReport.riskLevel).toBe('low');
     });
+
+    it('should deduplicate findings on the same line', async () => {
+      // Line 1: "child_process" appears TWICE on the SAME line
+      const buffer = await createTestZip({
+        'exploit.js': `const child_process = require('child_process');`,
+      });
+
+      const report = await scanSkill(buffer);
+
+      // Should only have 1 "Child Process Import" finding for line 1
+      // (not 2 from the two occurrences of "child_process" on the same line)
+      const childProcessImports = report.findings.filter(
+        f => f.title === 'Child Process Import'
+      );
+      expect(childProcessImports.length).toBe(1);
+      expect(childProcessImports[0].line).toBe(1);
+    });
+
+    it('should deduplicate findings from same pattern matching multiple times', async () => {
+      // eval() appears twice on the same line
+      const buffer = await createTestZip({
+        'script.js': `const a = eval(x) + eval(y);`,
+      });
+
+      const report = await scanSkill(buffer);
+
+      const evalFindings = report.findings.filter(
+        f => f.title === 'Use of eval()'
+      );
+      // Should only have 1 finding, not 2
+      expect(evalFindings.length).toBe(1);
+    });
   });
 
   describe('calculateSecurityScore', () => {

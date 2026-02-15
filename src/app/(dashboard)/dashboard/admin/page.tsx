@@ -11,19 +11,6 @@ export default async function AdminPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* System Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle>System Overview</CardTitle>
-            <CardDescription>View system health and statistics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/overview">
-              <Button className="w-full">View Overview</Button>
-            </Link>
-          </CardContent>
-        </Card>
-
         {/* User Management */}
         <Card>
           <CardHeader>
@@ -31,34 +18,8 @@ export default async function AdminPage() {
             <CardDescription>Manage users and permissions</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/admin/users">
+            <Link href="/dashboard/admin/users">
               <Button className="w-full">Manage Users</Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Audit Logs */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Audit Logs</CardTitle>
-            <CardDescription>View system activity logs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/audit-logs">
-              <Button className="w-full">View Logs</Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Reports */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Reports</CardTitle>
-            <CardDescription>Generate and download reports</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/reports">
-              <Button className="w-full">Generate Reports</Button>
             </Link>
           </CardContent>
         </Card>
@@ -70,21 +31,47 @@ export default async function AdminPage() {
             <CardDescription>Review and moderate skills</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/admin/skills">
+            <Link href="/dashboard/admin/skills">
               <Button className="w-full">Manage Skills</Button>
             </Link>
           </CardContent>
         </Card>
 
-        {/* Settings */}
+        {/* Audit Logs */}
         <Card>
           <CardHeader>
-            <CardTitle>System Settings</CardTitle>
-            <CardDescription>Configure system settings</CardDescription>
+            <CardTitle>Audit Logs</CardTitle>
+            <CardDescription>View system activity logs</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/admin/settings">
-              <Button className="w-full">View Settings</Button>
+            <Link href="/dashboard/admin/audit-logs">
+              <Button className="w-full">View Logs</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Security Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Security Configuration</CardTitle>
+            <CardDescription>Manage AI security prompts and re-analysis</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/dashboard/admin/security">
+              <Button className="w-full">Configure Security</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Reports */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Reports</CardTitle>
+            <CardDescription>Generate and download reports</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/dashboard/admin/reports">
+              <Button className="w-full">Generate Reports</Button>
             </Link>
           </CardContent>
         </Card>

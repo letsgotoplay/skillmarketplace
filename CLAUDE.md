@@ -10,4 +10,4 @@ Rules:
 (1) I don't just want it to work — I want it to be something I'm proud to show people
 (2) This is real. Not a mockup. Not a prototype. A working product.
 
-pnpm, uv should be used for target lang package manager. npx prisma studio --port 5556 for db schemas and data. 在tests/e2e 有给agent browser 用的sample profile 数据。 你可以参考并创建加速e2e测试
+pnpm, uv should be used for target lang package manager. npx prisma studio --port 5556 for db schemas and data. 在tests/e2e 有给agent browser 用的sample profile 数据。 

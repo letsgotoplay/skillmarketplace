@@ -394,6 +394,153 @@ function extractCodeSnippet(
 }
 
 /**
+ * Placeholder patterns that indicate example/fake credentials
+ */
+const PLACEHOLDER_PATTERNS = [
+  /^token\d+$/i,                    // token123, token456
+  /^xxx+$/i,                        // xxx, xxxx
+  /^placeholder$/i,                 // placeholder
+  /^sample[_-]?(key|token)?$/i,     // sample, sample_key, sample-token
+  /^dummy[_-]?(key|token)?$/i,      // dummy, dummy_key, dummy-token
+  /^test[_-]?(key|token)?$/i,       // test, test_key, test-token
+  /^your[_-].*[_-]here$/i,          // your_token_here, your_key_here
+  /^<[^>]+>$/,                      // <token>, <api_key>, <your-key>
+  /^\[[^\]]+\]$/,                   // [token], [your-key]
+  /^sk-test/i,                      // sk-test... (fake OpenAI keys)
+  /^sk-dummy/i,                     // sk-dummy...
+  /^AKIAIOSFODNN7EXAMPLE$/i,        // AWS example key
+  /^wJalrXUtnFEMI\/K7MDENG\/bPxRfiCYEXAMPLEKEY$/i, // AWS example secret
+  /^fake[_-]/i,                     // fake_key, fake-token
+  /^example[_-]/i,                  // example_key, example-token
+  /^abc123$/i,                      // common placeholder
+  /^123456$/i,                      // common placeholder
+  /^password123$/i,                 // common example password
+  /^changeme$/i,                    // common placeholder
+  /^insert[_-]?(your)?[_-]?(key|token|password)$/i, // insert_your_key
+];
+
+/**
+ * Check if matched value looks like a placeholder/example
+ */
+function isPlaceholderValue(matchedValue: string): boolean {
+  const value = matchedValue.trim();
+
+  // Check against placeholder patterns
+  for (const pattern of PLACEHOLDER_PATTERNS) {
+    if (pattern.test(value)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if position is inside a markdown code block (``` ... ```)
+ */
+function isInMarkdownCodeBlock(content: string, index: number): boolean {
+  const beforeContent = content.substring(0, index);
+  const afterContent = content.substring(index);
+
+  // Count code block markers before the position
+  const codeBlockStarts = (beforeContent.match(/```/g) || []).length;
+
+  // If odd number of markers before, we're inside a code block
+  if (codeBlockStarts % 2 === 1) {
+    // Verify there's a closing marker after
+    const closingMarker = afterContent.indexOf('```');
+    if (closingMarker !== -1) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if the line is in an example/documentation context
+ */
+function isInExampleContext(content: string, index: number): boolean {
+  const beforeContent = content.substring(0, index);
+  const lines = beforeContent.split('\n');
+  const currentLine = lines[lines.length - 1] || '';
+
+  // Check current line for example indicators
+  const examplePatterns = [
+    /^[\s]*(example|e\.g\.|for example|usage|sample)[:：]?\s*/i,
+    /```[\s]*\w*$/,  // End of code block start
+    /^\s*#\s*(example|usage|sample)/i,  // Comment with example
+    /^\s*\/\/\s*(example|usage|sample)/i,  // JS comment with example
+    /^\s*\*\s*(example|usage|sample)/i,  // JSDoc style
+    /as\s+(shown\s+)?(below|follows)/i,
+    /replace\s+(with\s+)?(your|the)\s+(key|token|secret)/i,
+  ];
+
+  for (const pattern of examplePatterns) {
+    if (pattern.test(currentLine)) {
+      return true;
+    }
+  }
+
+  // Check previous 2 lines for example context
+  for (let i = 2; i <= 3; i++) {
+    const prevLine = lines[lines.length - i] || '';
+    for (const pattern of examplePatterns) {
+      if (pattern.test(prevLine)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if the position is in a documentation/reference section
+ */
+function isInDocumentationSection(content: string, index: number): boolean {
+  const beforeContent = content.substring(0, index);
+  const lines = beforeContent.split('\n');
+  const currentLine = lines[lines.length - 1] || '';
+
+  // Documentation section headers
+  const docSectionPatterns = [
+    /^#+\s*(reference|references|documentation|docs|example|examples|usage|configuration|config)/i,
+    /^[\s]*[-*]\s*\[.*\]\(.*\)/,  // Markdown links in lists
+    /^[\s]*\|.*\|/,  // Table rows
+    /```\s*(bash|shell|json|yaml|yml|javascript|typescript|python)\s*$/i,  // Code blocks with language
+  ];
+
+  // Check last 10 lines for section headers
+  for (let i = 1; i <= 10 && lines.length - i >= 0; i++) {
+    const line = lines[lines.length - i] || '';
+    for (const pattern of docSectionPatterns) {
+      if (pattern.test(line)) {
+        return true;
+      }
+    }
+  }
+
+  // Check if line looks like documentation
+  const docLinePatterns = [
+    /^\s*>\s*/,  // Blockquote
+    /^\s*\*\s+.*:\s*$/,  // Definition list
+    /`[^`]+`/,  // Inline code
+  ];
+
+  for (const pattern of docLinePatterns) {
+    if (pattern.test(currentLine)) {
+      // Only consider it documentation if also has example indicators
+      if (/example|sample|your|placeholder|token\d+/i.test(currentLine)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Check if a line is inside a comment
  */
 function isInComment(content: string, index: number): boolean {
@@ -417,23 +564,67 @@ function isInComment(content: string, index: number): boolean {
 }
 
 /**
+ * Check if a finding should be skipped due to context (false positive prevention)
+ */
+function shouldSkipFinding(content: string, match: RegExpExecArray): boolean {
+  // Skip if in comment
+  if (isInComment(content, match.index)) {
+    return true;
+  }
+
+  // Skip if in markdown code block
+  if (isInMarkdownCodeBlock(content, match.index)) {
+    return true;
+  }
+
+  // Skip if in example context
+  if (isInExampleContext(content, match.index)) {
+    return true;
+  }
+
+  // Skip if in documentation section
+  if (isInDocumentationSection(content, match.index)) {
+    return true;
+  }
+
+  // Skip if matched value is a placeholder
+  const matchedValue = match[0] || '';
+  if (isPlaceholderValue(matchedValue)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Scan file content for security issues
  */
 function scanContent(content: string, filePath: string): SecurityFinding[] {
   const findings: SecurityFinding[] = [];
+  // Track seen findings to prevent duplicates (file + line + category + title)
+  const seenFindings = new Set<string>();
 
   for (const { pattern, severity, category, title, description, recommendation } of DANGEROUS_PATTERNS) {
     let match;
     const regex = new RegExp(pattern.source, pattern.flags);
 
     while ((match = regex.exec(content)) !== null) {
-      // Skip if in comment
-      if (isInComment(content, match.index)) {
+      // Skip if in a context that indicates false positive
+      if (shouldSkipFinding(content, match)) {
         continue;
       }
 
       // Find line number
       const lineNumber = content.substring(0, match.index).split('\n').length;
+
+      // Create a unique key for deduplication
+      const findingKey = `${filePath}:${lineNumber}:${category}:${title}`;
+
+      // Skip if we've already found this exact issue on this line
+      if (seenFindings.has(findingKey)) {
+        continue;
+      }
+      seenFindings.add(findingKey);
 
       // Extract code snippet
       const codeSnippet = extractCodeSnippet(content, lineNumber);

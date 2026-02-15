@@ -5,18 +5,25 @@ import { prisma } from '@/lib/db';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') ?? '50', 10);
+    const limit = parseInt(searchParams.get('limit') ?? '25', 10);
     const offset = parseInt(searchParams.get('offset') ?? '0', 10);
     const search = searchParams.get('search');
+    const role = searchParams.get('role');
+    const sortBy = searchParams.get('sortBy') ?? 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') ?? 'desc';
 
-    const where = search
-      ? {
-          OR: [
-            { email: { contains: search, mode: 'insensitive' as const } },
-            { name: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+    const where: Record<string, unknown> = {};
+
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' as const } },
+        { name: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
+
+    if (role && role !== 'ALL') {
+      where.role = role;
+    }
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
@@ -35,7 +42,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortBy]: sortOrder },
         take: limit,
         skip: offset,
       }),

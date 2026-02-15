@@ -185,3 +185,151 @@ export async function DELETE(
 
   return NextResponse.json({ success: true });
 }
+
+/**
+ * @openapi
+ * /skills/{id}:
+ *   patch:
+ *     tags: [Skills]
+ *     summary: Update a skill
+ *     description: Update skill properties (owner only)
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Skill ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               visibility:
+ *                 type: string
+ *                 enum: [PUBLIC, TEAM_ONLY, PRIVATE]
+ *                 description: New visibility setting
+ *               teamId:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *                 description: Team ID for TEAM_ONLY visibility
+ *     responses:
+ *       200:
+ *         description: Skill updated successfully
+ *       400:
+ *         description: Invalid request - TEAM_ONLY requires team membership
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied - not the owner
+ *       404:
+ *         description: Skill not found
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const skill = await prisma.skill.findUnique({
+    where: { id },
+  });
+
+  if (!skill) {
+    return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+  }
+
+  // Check ownership
+  if (skill.authorId !== session.user.id) {
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const { visibility, teamId } = body;
+
+  if (!visibility) {
+    return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
+  }
+
+  // Validate visibility value
+  if (!['PUBLIC', 'TEAM_ONLY', 'PRIVATE'].includes(visibility)) {
+    return NextResponse.json({ error: 'Invalid visibility value' }, { status: 400 });
+  }
+
+  let finalTeamId: string | null = null;
+
+  // If setting to TEAM_ONLY, validate team membership
+  if (visibility === 'TEAM_ONLY') {
+    // Check if user has any team
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: session.user.id },
+      select: { teamId: true },
+    });
+
+    if (!membership) {
+      return NextResponse.json(
+        { error: 'You must be a member of a team to set TEAM_ONLY visibility' },
+        { status: 400 }
+      );
+    }
+
+    // Use the provided teamId or the user's first team
+    if (teamId) {
+      const teamMembership = await prisma.teamMember.findFirst({
+        where: { userId: session.user.id, teamId },
+      });
+      if (!teamMembership) {
+        return NextResponse.json(
+          { error: 'You are not a member of this team' },
+          { status: 400 }
+        );
+      }
+      finalTeamId = teamId;
+    } else {
+      finalTeamId = membership.teamId;
+    }
+  }
+
+  // Update skill with the correct data structure
+  const updatedSkill = await prisma.skill.update({
+    where: { id },
+    data: {
+      visibility,
+      teamId: finalTeamId,
+    },
+    select: {
+      id: true,
+      name: true,
+      visibility: true,
+      teamId: true,
+      updatedAt: true,
+    },
+  });
+
+  // Create audit log
+  await prisma.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: 'SKILL_VISIBILITY_CHANGED',
+      resource: 'skill',
+      resourceId: id,
+      metadata: {
+        oldVisibility: skill.visibility,
+        newVisibility: visibility || skill.visibility,
+      },
+    },
+  });
+
+  return NextResponse.json(updatedSkill);
+}

@@ -24,6 +24,8 @@ import { authOptions } from '@/lib/auth';
 import { SkillFileBrowser } from '@/components/skill/file-browser';
 import { CopyButton } from '@/components/skill/copy-button';
 import { SkillFeedbackSection } from '@/components/skill/feedback-section';
+import { MarketplaceSecuritySection } from '@/components/security/marketplace-security-section';
+import type { SecurityFinding } from '@/lib/security/scanner';
 
 const statusColors: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700',
@@ -109,12 +111,16 @@ export default async function MarketplaceSkillPage({
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">v{latestVersion?.version || '0.0.0'}</Badge>
             <Badge variant="outline">{skill.team?.name || 'Independent'}</Badge>
-            {latestScan?.score !== null && latestScan?.score !== undefined && (
+            {latestScan?.riskLevel && (
               <Badge
-                variant={latestScan.score >= 80 ? 'default' : latestScan.score >= 60 ? 'secondary' : 'destructive'}
+                variant={
+                  latestScan.riskLevel === 'critical' ? 'destructive' :
+                  latestScan.riskLevel === 'high' ? 'default' :
+                  latestScan.riskLevel === 'medium' ? 'secondary' : 'outline'
+                }
               >
                 <Shield className="h-3 w-3 mr-1" />
-                Security: {latestScan.score}/100
+                {latestScan.riskLevel.charAt(0).toUpperCase() + latestScan.riskLevel.slice(1)} Risk
               </Badge>
             )}
           </div>
@@ -198,49 +204,60 @@ export default async function MarketplaceSkillPage({
 
           {/* Security Scan & Evaluation Results - Side by Side */}
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Security Scan (Left) */}
-            {latestScan && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Security
-                  </CardTitle>
-                  <CardDescription>
-                    Security analysis
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className={`text-3xl font-bold ${latestScan.score !== null && latestScan.score >= 80 ? 'text-green-600' : latestScan.score !== null && latestScan.score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {latestScan.score !== null ? latestScan.score : 'N/A'}
-                        </span>
-                        <span className="text-muted-foreground text-sm">/100</span>
-                      </div>
-                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm ${statusColors[latestScan.status]}`}>
-                        {latestScan.status}
-                      </span>
-                    </div>
-                    {latestScan.reportJson && typeof latestScan.reportJson === 'object' && 'findings' in latestScan.reportJson && (
-                      <div className="space-y-2">
-                        {(latestScan.reportJson as { findings?: Array<{ severity: string; type: string }> }).findings?.slice(0, 3).map((finding, index) => (
-                          <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${
-                              finding.severity === 'CRITICAL' || finding.severity === 'HIGH' ? 'bg-red-500' :
-                              finding.severity === 'MEDIUM' ? 'bg-yellow-500' : 'bg-gray-400'
-                            }`} />
-                            <span className="truncate">{finding.type}</span>
-                            <span className="text-xs text-muted-foreground ml-auto shrink-0">{finding.severity}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+            {/* Security Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Security
+                </CardTitle>
+                <CardDescription>
+                  Security analysis results
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!latestScan && !latestVersion?.aiSecurityAnalyzed ? (
+                  <div className="text-center py-6 text-muted-foreground text-sm">
+                    Security analysis in progress...
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <MarketplaceSecuritySection
+                    riskLevel={(() => {
+                      // Combine pattern and AI risk levels
+                      const patternLevel = latestScan?.riskLevel as 'low' | 'medium' | 'high' | 'critical' | undefined;
+                      const aiReport = latestVersion?.aiSecurityReport as { riskLevel?: string } | null;
+                      const aiLevel = aiReport?.riskLevel as 'low' | 'medium' | 'high' | 'critical' | undefined;
+                      const riskLevels = ['low', 'medium', 'high', 'critical'] as const;
+                      const patternIndex = patternLevel ? riskLevels.indexOf(patternLevel) : -1;
+                      const aiIndex = aiLevel ? riskLevels.indexOf(aiLevel as typeof riskLevels[number]) : -1;
+                      const maxIndex = Math.max(patternIndex, aiIndex);
+                      return maxIndex >= 0 ? riskLevels[maxIndex] : 'unknown';
+                    })()}
+                    findings={[
+                      // Pattern scan findings
+                      ...((latestScan?.reportJson as { findings?: SecurityFinding[] })?.findings || []),
+                      // AI analysis findings
+                      ...((latestVersion?.aiSecurityReport as { threats?: SecurityFinding[] })?.threats || []),
+                    ]}
+                    summary={(() => {
+                      const patternFindings = (latestScan?.reportJson as { findings?: SecurityFinding[] })?.findings || [];
+                      const aiFindings = (latestVersion?.aiSecurityReport as { threats?: SecurityFinding[] })?.threats || [];
+                      const allFindings = [...patternFindings, ...aiFindings];
+                      return {
+                        critical: allFindings.filter(f => f.severity === 'critical').length,
+                        high: allFindings.filter(f => f.severity === 'high').length,
+                        medium: allFindings.filter(f => f.severity === 'medium').length,
+                        low: allFindings.filter(f => f.severity === 'low').length,
+                        info: allFindings.filter(f => f.severity === 'info').length,
+                        total: allFindings.length,
+                      };
+                    })()}
+                    aiConfidence={(latestVersion?.aiSecurityReport as { confidence?: number })?.confidence}
+                    analyzedAt={(latestScan?.reportJson as { analyzedAt?: string })?.analyzedAt}
+                  />
+                )}
+              </CardContent>
+            </Card>
 
             {/* Evaluation / Test Results (Right) */}
             {latestEval && (

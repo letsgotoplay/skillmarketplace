@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-// GET /api/admin/audit-logs - List audit logs
+// GET /api/admin/audit-logs/export - Export audit logs as CSV
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') ?? '50', 10);
-    const offset = parseInt(searchParams.get('offset') ?? '0', 10);
     const userId = searchParams.get('userId');
     const userSearch = searchParams.get('userSearch');
     const action = searchParams.get('action');
@@ -44,15 +42,11 @@ export async function GET(request: NextRequest) {
         : {}),
     };
 
-    const [logs, total] = await Promise.all([
-      prisma.auditLog.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.auditLog.count({ where }),
-    ]);
+    const logs = await prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 10000, // Limit to 10000 rows for export
+    });
 
     // Get unique user IDs and fetch user info
     const userIds = Array.from(new Set(logs.filter((l) => l.userId).map((l) => l.userId))) as string[];
@@ -64,14 +58,44 @@ export async function GET(request: NextRequest) {
       : [];
 
     const userMap = new Map(users.map((u) => [u.id, u]));
-    const logsWithUsers = logs.map((log) => ({
-      ...log,
-      user: log.userId ? userMap.get(log.userId) : null,
-    }));
 
-    return NextResponse.json({ logs: logsWithUsers, total });
+    // Generate CSV
+    const headers = ['ID', 'Timestamp', 'User Email', 'User Name', 'Action', 'Resource', 'Resource ID', 'Metadata'];
+    const rows = logs.map((log) => {
+      const user = log.userId ? userMap.get(log.userId) : null;
+      return [
+        log.id,
+        log.createdAt.toISOString(),
+        user?.email || '',
+        user?.name || '',
+        log.action,
+        log.resource,
+        log.resourceId || '',
+        JSON.stringify(log.metadata || {}),
+      ];
+    });
+
+    // Escape CSV fields
+    const escapeCsv = (field: string) => {
+      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map(escapeCsv).join(',')),
+    ].join('\n');
+
+    return new NextResponse(csvContent, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.csv"`,
+      },
+    });
   } catch (error) {
-    console.error('Failed to fetch audit logs:', error);
-    return NextResponse.json({ error: 'Failed to fetch audit logs' }, { status: 500 });
+    console.error('Failed to export audit logs:', error);
+    return NextResponse.json({ error: 'Failed to export audit logs' }, { status: 500 });
   }
 }

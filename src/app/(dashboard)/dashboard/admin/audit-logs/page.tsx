@@ -1,4 +1,7 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Suspense } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AuditLogList } from '@/components/admin/audit-log-list';
 
 interface AuditLog {
   id: string;
@@ -17,27 +20,30 @@ interface AuditLog {
 
 async function getAuditLogs(): Promise<{ logs: AuditLog[]; total: number }> {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/admin/audit-logs?limit=50`,
+    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/admin/audit-logs`,
     { cache: 'no-store' }
   );
   return res.json();
 }
 
-function formatAction(action: string): string {
-  return action.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function getActionColor(action: string): string {
-  if (action.includes('deleted') || action.includes('removed') || action.includes('failed')) {
-    return 'bg-red-100 text-red-800';
-  }
-  if (action.includes('created') || action.includes('added') || action.includes('completed')) {
-    return 'bg-green-100 text-green-800';
-  }
-  if (action.includes('updated') || action.includes('uploaded')) {
-    return 'bg-blue-100 text-blue-800';
-  }
-  return 'bg-gray-100 text-gray-800';
+function AuditLogSkeleton() {
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex gap-4 mb-6">
+          <Skeleton className="h-10 w-[200px]" />
+          <Skeleton className="h-10 w-[150px]" />
+          <Skeleton className="h-10 w-[150px]" />
+          <Skeleton className="h-10 w-[300px]" />
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default async function AuditLogsPage() {
@@ -52,51 +58,9 @@ export default async function AuditLogsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>System Activity</CardTitle>
-          <CardDescription>Recent system events and user actions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {logs.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No audit logs yet</p>
-            ) : (
-              logs.map((log) => (
-                <div key={log.id} className="flex items-start gap-4 p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-medium ${getActionColor(log.action)}`}
-                      >
-                        {formatAction(log.action)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">{log.resource}</span>
-                    </div>
-                    <div className="text-sm">
-                      {log.user ? (
-                        <span>
-                          By <strong>{log.user.name ?? log.user.email}</strong>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">System</span>
-                      )}
-                      {log.resourceId && (
-                        <span className="text-muted-foreground ml-2">
-                          on {log.resource} ({log.resourceId.slice(0, 8)}...)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(log.createdAt).toLocaleString()}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <Suspense fallback={<AuditLogSkeleton />}>
+        <AuditLogList initialLogs={logs} initialTotal={total} />
+      </Suspense>
     </div>
   );
 }

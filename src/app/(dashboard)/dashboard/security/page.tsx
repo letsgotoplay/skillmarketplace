@@ -6,14 +6,8 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { SecurityFindings } from '@/components/security/security-findings';
+import { Card, CardContent } from '@/components/ui/card';
+import { SecuritySkillCard } from '@/components/security/security-skill-card';
 import type { SecurityFinding } from '@/lib/security/scanner';
 
 export default async function SecurityPage() {
@@ -22,6 +16,14 @@ export default async function SecurityPage() {
   if (!session?.user?.id) {
     redirect('/login');
   }
+
+  // Get user role for admin check
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  const isAdmin = user?.role === 'ADMIN';
 
   // Get all skill versions with security data for user's skills
   const skillVersions = await prisma.skillVersion.findMany({
@@ -49,6 +51,11 @@ export default async function SecurityPage() {
             View security analysis results for your uploaded skills
           </p>
         </div>
+        {isAdmin && (
+          <Link href="/dashboard/admin/security">
+            <Button variant="outline">Manage AI Prompts</Button>
+          </Link>
+        )}
       </div>
 
       {skillVersions.length === 0 ? (
@@ -113,59 +120,21 @@ export default async function SecurityPage() {
             };
 
             return (
-              <Card key={version.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>{version.skill.name}</CardTitle>
-                      <CardDescription>
-                        Version {version.version} • Uploaded {new Date(version.createdAt).toLocaleDateString()}
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Link href={`/dashboard/skills/${version.skill.id}`}>
-                        <Button variant="outline" size="sm">View Skill</Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {!scan && !version.aiSecurityAnalyzed ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>Security analysis in progress...</p>
-                    </div>
-                  ) : allFindings.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-green-600 font-medium">No security issues found</p>
-                    </div>
-                  ) : (
-                    <SecurityFindings
-                      riskLevel={combinedRiskLevel}
-                      findings={allFindings}
-                      summary={combinedSummary}
-                      analyzedAt={reportJson?.analyzedAt}
-                      analyzedFiles={reportJson?.analyzedFiles}
-                    />
-                  )}
-
-                  {/* AI Recommendations */}
-                  {aiReport?.recommendations && aiReport.recommendations.length > 0 && (
-                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h4 className="font-medium text-blue-800 mb-2">AI Recommendations</h4>
-                      <ul className="text-sm text-blue-700 space-y-1">
-                        {aiReport.recommendations.map((rec, i) => (
-                          <li key={i}>• {rec}</li>
-                        ))}
-                      </ul>
-                      {aiReport.confidence && (
-                        <p className="text-xs text-blue-600 mt-2">
-                          AI Confidence: {aiReport.confidence}%
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <SecuritySkillCard
+                key={version.id}
+                skillId={version.skillId}
+                skillVersionId={version.id}
+                skillName={version.skill.name}
+                version={version.version}
+                createdAt={version.createdAt}
+                scan={scan}
+                aiSecurityAnalyzed={version.aiSecurityAnalyzed}
+                reportJson={reportJson}
+                aiReport={aiReport}
+                combinedRiskLevel={combinedRiskLevel}
+                combinedSummary={combinedSummary}
+                allFindings={allFindings}
+              />
             );
           })}
         </div>
