@@ -10,6 +10,7 @@ import { remove } from './commands/remove.js';
 import { upload } from './commands/upload.js';
 import { check } from './commands/check.js';
 import { update } from './commands/update.js';
+import { completion } from './commands/completion.js';
 import { isAuthenticated } from './api/client.js';
 
 const program = new Command();
@@ -154,6 +155,14 @@ program
       agents,
       all: options.all,
     });
+  });
+
+// Completion command
+program
+  .command('completion <shell>')
+  .description('Generate shell completion script (bash, zsh, fish)')
+  .action(async (shell: string) => {
+    await completion(shell);
   });
 
 // Add error handling for unauthenticated commands
