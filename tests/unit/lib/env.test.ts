@@ -14,6 +14,7 @@ describe('Environment Configuration', () => {
     S3_REGION: 'us-east-1',
     S3_BUCKET: 'skillmarketplace',
     S3_FORCE_PATH_STYLE: 'true',
+    AI_SECURITY_ENABLED: 'true',
     AI_SECURITY_API_KEY: 'test-api-key',
     AI_SECURITY_BASE_URL: 'https://open.bigmodel.cn/api/anthropic',
     AI_SECURITY_MODEL: 'GLM-4',
