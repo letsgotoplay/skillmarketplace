@@ -16,6 +16,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed:real": "npx tsx prisma/seed-real-skills.ts",
     "minio:start": "docker run -d --name minio-local -p 9000:9000 -p 9001:9001 -v \"$(pwd)/minio-data\":/data -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin123 minio/minio server /data --console-address \":9001\"",
     "minio:stop": "docker stop minio-local && docker rm minio-local",
     "minio:console": "open http://localhost:9001",

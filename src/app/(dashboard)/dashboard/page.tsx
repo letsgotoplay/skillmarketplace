@@ -169,7 +169,7 @@ export default async function DashboardPage() {
                   >
                     <div>
                       <Link
-                        href={`/marketplace/${skill.slug}`}
+                        href={`/marketplace/${skill.id}`}
                         className="font-medium hover:underline"
                       >
                         {skill.name}
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
                         {skill.description}
                       </p>
                     </div>
-                    <Link href={`/marketplace/${skill.slug}`}>
+                    <Link href={`/marketplace/${skill.id}`}>
                       <Button variant="ghost" size="sm">View</Button>
                     </Link>
                   </div>

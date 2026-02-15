@@ -1,21 +1,11 @@
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
 import { prisma } from '@/lib/db';
-import { Category } from '@prisma/client';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowDown } from 'lucide-react';
+import { Visibility } from '@prisma/client';
 import { CategoryFilter } from '@/components/marketplace/category-filter';
 import { MarketplaceSearch } from '@/components/marketplace/marketplace-search';
-import { SLUG_TO_CATEGORY, CATEGORY_LABELS } from '@/lib/categories';
+import { MarketplaceContent } from '@/components/marketplace/marketplace-content';
+import { SLUG_TO_CATEGORY } from '@/lib/categories';
 
 interface MarketplacePageProps {
   searchParams: {
@@ -23,6 +13,8 @@ interface MarketplacePageProps {
     search?: string;
   };
 }
+
+const PAGE_SIZE = 12;
 
 export default async function MarketplacePage({ searchParams }: MarketplacePageProps) {
   const categorySlug = searchParams.category;
@@ -48,11 +40,11 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
     ];
   }
 
-  const [skills, categoryCounts] = await Promise.all([
+  const [skills, total, categoryCounts] = await Promise.all([
     prisma.skill.findMany({
       where,
       include: {
-        author: { select: { name: true } },
+        author: { select: { id: true, name: true, email: true } },
         stats: true,
         versions: {
           orderBy: { createdAt: 'desc' },
@@ -60,8 +52,9 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: PAGE_SIZE,
     }),
+    prisma.skill.count({ where }),
     // Get counts for each category
     prisma.skill.groupBy({
       by: ['category'],
@@ -90,81 +83,16 @@ export default async function MarketplacePage({ searchParams }: MarketplacePageP
         <CategoryFilter selectedCategory={category} counts={countsMap} />
       </div>
 
-      {/* Active Filters Summary */}
-      {(category || searchQuery) && (
-        <div className="mb-6 text-sm text-muted-foreground">
-          Showing {skills.length} skill{skills.length !== 1 ? 's' : ''}
-          {category && ` in ${CATEGORY_LABELS[category as Category]}`}
-          {searchQuery && ` matching "${searchQuery}"`}
-        </div>
-      )}
-
-      {/* Skills Grid */}
-      {skills.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No skills found. Try adjusting your search or filters.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {skills.map((skill) => (
-            <Card key={skill.id} className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {skill.name}
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">
-                      {CATEGORY_LABELS[skill.category as Category]}
-                    </Badge>
-                    <span className="text-sm font-normal text-muted-foreground">
-                      v{skill.versions[0]?.version || '0.0.0'}
-                    </span>
-                  </div>
-                </CardTitle>
-                <CardDescription>{skill.description}</CardDescription>
-                {skill.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {skill.tags.slice(0, 3).map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {skill.tags.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{skill.tags.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-muted-foreground">
-                    by {skill.author.name || 'Anonymous'}
-                  </span>
-                  <span className="text-sm text-muted-foreground flex items-center gap-1">
-                    <ArrowDown className="h-4 w-4" />
-                    {skill.stats?.downloadsCount || 0}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Link href={`/marketplace/${skill.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full">
-                      View Details
-                    </Button>
-                  </Link>
-                  <Link href={`/api/skills/${skill.id}/download`} className="flex-1">
-                    <Button className="w-full">Download</Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Content with Infinite Scroll */}
+      <MarketplaceContent
+        initialSkills={skills.map(s => ({
+          ...s,
+          visibility: s.visibility as Visibility,
+        }))}
+        initialTotal={total}
+        category={category}
+        searchQuery={searchQuery}
+      />
     </div>
   );
 }

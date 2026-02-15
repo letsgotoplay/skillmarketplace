@@ -57,7 +57,7 @@ export function SiteHeader() {
               <Link href="/dashboard">
                 <Button variant="ghost">Dashboard</Button>
               </Link>
-              <Button variant="outline" onClick={() => signOut()}>
+              <Button variant="outline" onClick={() => signOut({ callbackUrl: window.location.origin })}>
                 Sign Out
               </Button>
             </>
@@ -104,7 +104,7 @@ export function SiteHeader() {
                   <Link href="/dashboard" className="block">
                     <Button variant="ghost" className="w-full">Dashboard</Button>
                   </Link>
-                  <Button variant="outline" className="w-full" onClick={() => signOut()}>
+                  <Button variant="outline" className="w-full" onClick={() => signOut({ callbackUrl: window.location.origin })}>
                     Sign Out
                   </Button>
                 </>
