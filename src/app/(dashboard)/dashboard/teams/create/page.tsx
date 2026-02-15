@@ -34,13 +34,13 @@ export default function CreateTeamPage() {
         body: JSON.stringify({ name, description }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || 'Failed to create team');
       }
 
-      const team = await res.json();
-      router.push(`/dashboard/teams/${team.id}`);
+      router.push(`/dashboard/teams/${data.team.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
