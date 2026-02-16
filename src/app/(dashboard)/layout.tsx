@@ -3,14 +3,13 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Providers } from './providers';
 import Link from 'next/link';
-import { Home, BarChart3, Package, Users, Shield, FlaskConical, Settings, FileText } from 'lucide-react';
+import { Home, Package, Users, Shield, FlaskConical, Settings, FileText } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: Home },
   { href: '/dashboard/skills', label: 'Skills', icon: FileText },
   { href: '/dashboard/teams', label: 'Teams', icon: Users },
   { href: '/dashboard/bundles', label: 'Bundles', icon: Package },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/dashboard/evaluations', label: 'Evaluations', icon: FlaskConical },
   { href: '/dashboard/security', label: 'Security', icon: Shield },
 ];
@@ -74,6 +73,13 @@ export default async function DashboardLayout({
 
               {/* User Menu */}
               <div className="flex items-center gap-4">
+                <Link
+                  href="/dashboard/settings"
+                  className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">Settings</span>
+                </Link>
                 <span className="text-sm text-muted-foreground hidden sm:inline">
                   {session.user.email}
                 </span>

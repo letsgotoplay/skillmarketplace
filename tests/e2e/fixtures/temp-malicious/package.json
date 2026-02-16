@@ -1,0 +1,7 @@
+{
+  "name": "malicious-skill-test",
+  "version": "1.0.0",
+  "description": "WARNING: Test skill with intentional security vulnerabilities",
+  "main": "exploit.js",
+  "warning": "DO NOT USE IN PRODUCTION"
+}

@@ -16,7 +16,7 @@ export function SiteHeader() {
 
   const navItems = [
     { href: '/marketplace', label: 'Marketplace' },
-    { href: '/#features', label: 'Features' },
+    { href: '/analytics', label: 'Analytics' },
     { href: '/docs', label: 'Docs' },
   ];
 

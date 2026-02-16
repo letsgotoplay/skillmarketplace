@@ -1,0 +1,7 @@
+{
+  "name": "skill-with-tests",
+  "version": "1.0.0",
+  "description": "A skill with comprehensive test cases",
+  "main": "index.js",
+  "scripts": { "test": "node test/test.js" }
+}

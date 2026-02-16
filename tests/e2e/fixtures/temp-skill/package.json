@@ -1,0 +1,13 @@
+{
+  "name": "test-secure-skill",
+  "version": "1.0.0",
+  "description": "A secure test skill for E2E testing",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test/test.js"
+  },
+  "keywords": ["skill", "test", "secure", "e2e"],
+  "author": "E2E Test Suite",
+  "license": "MIT"
+}

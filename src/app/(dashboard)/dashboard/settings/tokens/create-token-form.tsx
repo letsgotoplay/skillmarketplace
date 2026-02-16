@@ -8,8 +8,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   DialogFooter,
   DialogClose,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const SCOPES = [
@@ -68,10 +71,6 @@ export function CreateTokenForm() {
       }
 
       setCreatedToken(data.token);
-      toast({
-        title: 'Success',
-        description: 'Token created successfully',
-      });
     } catch (error) {
       console.error('Failed to create token:', error);
       toast({
@@ -105,25 +104,30 @@ export function CreateTokenForm() {
 
   if (createdToken) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950">
-          <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-            Token created successfully!
-          </p>
-          <p className="text-xs text-green-700 dark:text-green-300 mb-3">
+      <>
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-green-600 dark:text-green-400">
+            <CheckCircle2 className="h-5 w-5" />
+            Token Created
+          </DialogTitle>
+          <DialogDescription>
             Copy your token now. You won&apos;t be able to see it again.
-          </p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm bg-white dark:bg-gray-900 px-3 py-2 rounded border overflow-x-auto">
-              {createdToken}
-            </code>
-            <Button variant="outline" size="icon" onClick={copyToken}>
-              {copied ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <div className="rounded-lg border bg-muted/50 p-3">
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-sm bg-background px-3 py-2 rounded border font-mono break-all">
+                {createdToken}
+              </code>
+              <Button variant="outline" size="icon" onClick={copyToken} className="shrink-0">
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -131,58 +135,66 @@ export function CreateTokenForm() {
             <Button>Done</Button>
           </DialogClose>
         </DialogFooter>
-      </div>
+      </>
     );
   }
 
   return (
-    <form onSubmit={handleCreateToken} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Token Name</Label>
-        <Input
-          id="name"
-          placeholder="e.g., CI/CD, Development Laptop"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">
-          A descriptive name to help you identify this token
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Scopes</Label>
-        <div className="grid gap-2">
-          {SCOPES.map((scope) => (
-            <div key={scope.id} className="flex items-start space-x-3 space-y-0">
-              <Checkbox
-                id={scope.id}
-                checked={selectedScopes.includes(scope.id)}
-                onCheckedChange={() => toggleScope(scope.id)}
-              />
-              <div className="grid gap-1 leading-none">
-                <Label htmlFor={scope.id} className="cursor-pointer">
-                  {scope.label}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {scope.description}
-                </p>
-              </div>
-            </div>
-          ))}
+    <>
+      <DialogHeader>
+        <DialogTitle>Create API Token</DialogTitle>
+        <DialogDescription>
+          Generate a new API token for CLI authentication.
+        </DialogDescription>
+      </DialogHeader>
+      <form onSubmit={handleCreateToken} className="space-y-4 py-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Token Name</Label>
+          <Input
+            id="name"
+            placeholder="e.g., CI/CD, Development Laptop"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            A descriptive name to help you identify this token
+          </p>
         </div>
-      </div>
 
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button type="button" variant="outline">
-            Cancel
+        <div className="space-y-2">
+          <Label>Scopes</Label>
+          <div className="grid gap-2 max-h-40 overflow-y-auto pr-1">
+            {SCOPES.map((scope) => (
+              <div key={scope.id} className="flex items-start space-x-3 space-y-0">
+                <Checkbox
+                  id={scope.id}
+                  checked={selectedScopes.includes(scope.id)}
+                  onCheckedChange={() => toggleScope(scope.id)}
+                />
+                <div className="grid gap-1 leading-none">
+                  <Label htmlFor={scope.id} className="cursor-pointer">
+                    {scope.label}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {scope.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Creating...' : 'Create Token'}
           </Button>
-        </DialogClose>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Creating...' : 'Create Token'}
-        </Button>
-      </DialogFooter>
-    </form>
+        </DialogFooter>
+      </form>
+    </>
   );
 }

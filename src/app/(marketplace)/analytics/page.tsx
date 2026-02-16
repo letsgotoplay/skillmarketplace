@@ -1,7 +1,6 @@
 import React from 'react';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Package, Users, Shield, TrendingUp } from 'lucide-react';
+import { Download, Package, Users, Shield } from 'lucide-react';
 import { Charts } from '@/components/analytics/Charts';
 
 // Force dynamic rendering
@@ -179,12 +178,9 @@ export default async function PublicAnalyticsPage() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-semibold text-gray-400">#{index + 1}</span>
-                        <Link
-                          href={`/dashboard/teams/${team.id}`}
-                          className="font-medium hover:text-primary transition-colors"
-                        >
+                        <span className="font-medium">
                           {team.name}
-                        </Link>
+                        </span>
                       </div>
                     </td>
                     <td className="text-right py-3 px-4">{team.skillCount}</td>
