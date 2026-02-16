@@ -8,6 +8,7 @@ import * as path from 'path'
 import { getUsers, USERS_PASSWORD, USER_IDS } from './seed-data/users'
 import { TEAMS, TEAM_MEMBERS, TEAM_IDS } from './seed-data/teams'
 import { getAuditLogsWithDates } from './seed-data/audit-logs'
+import { generateSkillSlug, generateFullSlug } from '../src/lib/slug'
 
 const prisma = new PrismaClient()
 const storage = getStorageProvider()
@@ -239,6 +240,13 @@ async function seedTeams() {
 async function seedSkillsFromZips() {
   console.log('📦 Seeding skills from real zip files...')
 
+  // Get user emailPrefix mapping
+  const users = await prisma.user.findMany({ select: { id: true, emailPrefix: true } })
+  const userEmailPrefix: Record<string, string> = {}
+  for (const user of users) {
+    userEmailPrefix[user.id] = user.emailPrefix
+  }
+
   const zipFiles = fs.readdirSync(TEST_SKILLS_DIR)
     .filter(f => f.endsWith('.zip'))
     .map(f => f.replace('.zip', ''))
@@ -275,6 +283,8 @@ async function seedSkillsFromZips() {
     // Create skill record
     const skillId = `skill-${skillName}`
     createdSkillIds[skillName] = skillId
+    const slug = generateSkillSlug(skillName)
+    const fullSlug = generateFullSlug(userEmailPrefix[config.authorId] || 'unknown', slug)
 
     // Determine status based on visibility and risk
     let status = SkillStatus.APPROVED
@@ -283,7 +293,8 @@ async function seedSkillsFromZips() {
       data: {
         id: skillId,
         name,
-        slug: skillName,
+        slug,
+        fullSlug,
         description,
         category: config.category,
         tags: config.tags,

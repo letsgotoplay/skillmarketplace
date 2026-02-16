@@ -13,6 +13,7 @@ interface Skill {
   id: string;
   name: string;
   slug: string;
+  fullSlug: string;
   description: string | null;
   category: Category;
   tags: string[];
@@ -174,12 +175,12 @@ export function InfiniteSkillList({
                 </div>
               )}
               <div className="flex gap-2">
-                <Link href={`${viewPathPrefix}/${skill.id}`} className="flex-1">
+                <Link href={`${viewPathPrefix}/${skill.fullSlug}`} className="flex-1">
                   <Button variant="outline" className="w-full">
                     View Details
                   </Button>
                 </Link>
-                <Link href={`/api/skills/${skill.id}/download`} className="flex-1">
+                <Link href={`/api/download/${skill.fullSlug}`} className="flex-1">
                   <Button className="w-full">Download</Button>
                 </Link>
               </div>

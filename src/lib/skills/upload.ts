@@ -1,11 +1,6 @@
-'use server';
-
-import { revalidatePath } from 'next/cache';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { validateSkill, parseSkillZip } from '@/lib/skills';
-import { SkillStatus, Visibility, Category, ContributionType } from '@prisma/client';
+import { SkillStatus, Visibility, Category, ContributionType, TokenScope } from '@prisma/client';
 import { validateSpecification } from '@/lib/specification';
 import { scanSkill, storeSecurityScan } from '@/lib/security/scanner';
 import { analyzeWithAI, analyzeSkillMetadata } from '@/lib/security/ai-analyzer';
@@ -20,31 +15,43 @@ export interface UploadResult {
   success: boolean;
   skillId?: string;
   versionId?: string;
+  slug?: string;
+  fullSlug?: string;
   error?: string;
   validationErrors?: string[];
   warnings?: string[];
   specValidationPassed?: boolean;
 }
 
-export async function uploadSkill(formData: FormData): Promise<UploadResult> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return { success: false, error: 'Unauthorized' };
-  }
+export interface UploadOptions {
+  userId: string;
+  emailPrefix: string;
+  file: File | Buffer;
+  fileName: string;
+  visibility?: Visibility;
+  category?: Category;
+  tags?: string[];
+  teamId?: string | null;
+  changelog?: string | null;
+}
 
-  const file = formData.get('file') as File;
-  const visibility = (formData.get('visibility') as Visibility) || 'PUBLIC';
-  const category = (formData.get('category') as Category) || 'DEVELOPMENT';
-  const tagsString = formData.get('tags') as string | null;
-  const tags = tagsString ? tagsString.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : [];
-  const teamId = formData.get('teamId') as string | null;
-  const changelog = formData.get('changelog') as string | null;
+/**
+ * Core upload logic - can be used by both server actions and API routes
+ */
+export async function processSkillUpload(options: UploadOptions): Promise<UploadResult> {
+  const {
+    userId,
+    emailPrefix,
+    file,
+    fileName,
+    visibility = 'PUBLIC',
+    category = 'DEVELOPMENT',
+    tags = [],
+    teamId = null,
+    changelog = null,
+  } = options;
 
-  if (!file) {
-    return { success: false, error: 'No file provided' };
-  }
-
-  if (!file.name.endsWith('.zip')) {
+  if (!fileName.endsWith('.zip')) {
     return { success: false, error: 'Only ZIP files are supported' };
   }
 
@@ -53,7 +60,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
     const membership = await prisma.teamMember.findFirst({
       where: {
         teamId,
-        userId: session.user.id,
+        userId,
       },
     });
 
@@ -68,8 +75,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
 
   try {
     // Read file content
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const buffer = file instanceof File ? Buffer.from(await file.arrayBuffer()) : file;
 
     // Step 1: Basic validation (structure, metadata)
     const validation = await validateSkill(buffer);
@@ -89,18 +95,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
     const { metadata } = validation;
     const slug = generateSkillSlug(metadata.name);
     const version = metadata.version || '1.0.0';
-
-    // Get user's emailPrefix for fullSlug generation
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { emailPrefix: true },
-    });
-
-    if (!user) {
-      return { success: false, error: 'User not found' };
-    }
-
-    const fullSlug = generateFullSlug(user.emailPrefix, slug);
+    const fullSlug = generateFullSlug(emailPrefix, slug);
 
     // Step 2: Run specification validation BEFORE saving
     console.log('[Upload] Running specification validation...');
@@ -124,7 +119,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
     let finalTags = tags;
 
     // If user didn't provide category or tags, use AI to analyze and generate them
-    if (!formData.get('category') || tags.length === 0) {
+    if (!category || tags.length === 0) {
       console.log('[Upload] Running AI metadata analysis for auto-categorization...');
       try {
         const metadataResult = await analyzeSkillMetadata(
@@ -134,7 +129,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
         );
 
         // Use AI-suggested category if user didn't provide one
-        if (!formData.get('category')) {
+        if (!category) {
           finalCategory = metadataResult.category as Category;
           console.log(`[Upload] AI suggested category: ${finalCategory} (confidence: ${metadataResult.confidence}%)`);
         }
@@ -163,7 +158,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
         where: {
           slug_authorId: {
             slug,
-            authorId: session.user.id,
+            authorId: userId,
           },
         },
       });
@@ -179,7 +174,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
           description: metadata.description,
           category: finalCategory,
           tags: finalTags,
-          authorId: session.user.id,
+          authorId: userId,
           teamId: teamId || null,
           visibility,
         },
@@ -221,7 +216,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
         changelog: changelog || undefined,
         filePath,
         status: SkillStatus.APPROVED,
-        createdBy: session.user.id,
+        createdBy: userId,
         // Store spec validation result
         specValidationPassed: true,
         specValidationErrors: specResult.warnings.length > 0 ? specResult.warnings : undefined,
@@ -256,7 +251,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        userId: session.user.id,
+        userId,
         action: 'UPLOAD_SKILL',
         resource: 'skill',
         resourceId: skill.id,
@@ -268,7 +263,7 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
     if (teamId) {
       await recordContribution(
         teamId,
-        session.user.id,
+        userId,
         ContributionType.SKILL_UPLOADED,
         skill.id
       );
@@ -277,13 +272,12 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
     // Step 6: Trigger async security analysis (non-blocking)
     triggerSecurityAnalysis(skillVersion.id, buffer, parsedSkill, filePath).catch(console.error);
 
-    revalidatePath('/dashboard/skills');
-    revalidatePath('/marketplace');
-
     return {
       success: true,
       skillId: skill.id,
       versionId: skillVersion.id,
+      slug,
+      fullSlug,
       warnings: [...(validation.warnings || []), ...(specResult.warnings || [])].length > 0
         ? [...(validation.warnings || []), ...(specResult.warnings || [])]
         : undefined,
@@ -332,277 +326,6 @@ async function cleanupFailedUpload(
     // If needed, add logic to check and delete skill with no versions
   } catch (error) {
     console.error('[Cleanup] Error during cleanup:', error);
-  }
-}
-
-export async function getSkills(options?: {
-  authorId?: string;
-  teamId?: string;
-  visibility?: Visibility;
-  category?: Category;
-  search?: string;
-  limit?: number;
-  offset?: number;
-}) {
-  const where: Record<string, unknown> = {};
-
-  if (options?.authorId) {
-    where.authorId = options.authorId;
-  }
-
-  if (options?.teamId) {
-    where.teamId = options.teamId;
-  }
-
-  if (options?.visibility) {
-    where.visibility = options.visibility;
-  }
-
-  if (options?.category) {
-    where.category = options.category;
-  }
-
-  if (options?.search) {
-    const searchTerm = options.search.trim();
-    where.OR = [
-      { name: { contains: searchTerm, mode: 'insensitive' } },
-      { description: { contains: searchTerm, mode: 'insensitive' } },
-      { tags: { hasSome: [searchTerm.toLowerCase()] } },
-    ];
-  }
-
-  const [skills, total] = await Promise.all([
-    prisma.skill.findMany({
-      where,
-      include: {
-        author: { select: { id: true, name: true, email: true } },
-        team: { select: { id: true, name: true, slug: true } },
-        stats: true,
-        versions: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: options?.limit || 20,
-      skip: options?.offset || 0,
-    }),
-    prisma.skill.count({ where }),
-  ]);
-
-  return { skills, total };
-}
-
-export async function getSkillById(skillId: string) {
-  return prisma.skill.findUnique({
-    where: { id: skillId },
-    include: {
-      author: { select: { id: true, name: true, email: true } },
-      team: { select: { id: true, name: true, slug: true } },
-      stats: true,
-      versions: {
-        orderBy: { createdAt: 'desc' },
-        include: {
-          files: true,
-          evals: {
-            include: {
-              results: true,
-            },
-          },
-          scans: true,
-        },
-      },
-    },
-  });
-}
-
-/**
- * Upload a new version of an existing skill
- * Similar to uploadSkill but validates skill name matches and has no optional fields
- */
-export async function uploadSkillVersion(
-  skillId: string,
-  formData: FormData
-): Promise<UploadResult> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return { success: false, error: 'Unauthorized' };
-  }
-
-  // Get existing skill and verify ownership
-  const existingSkill = await prisma.skill.findUnique({
-    where: { id: skillId },
-    include: { versions: { orderBy: { createdAt: 'desc' }, take: 1 } },
-  });
-
-  if (!existingSkill) {
-    return { success: false, error: 'Skill not found' };
-  }
-
-  if (existingSkill.authorId !== session.user.id) {
-    return { success: false, error: 'You can only update your own skills' };
-  }
-
-  const file = formData.get('file') as File;
-  const changelog = formData.get('changelog') as string | null;
-
-  if (!file) {
-    return { success: false, error: 'No file provided' };
-  }
-
-  if (!file.name.endsWith('.zip')) {
-    return { success: false, error: 'Only ZIP files are supported' };
-  }
-
-  let versionId: string | null = null;
-  let filePath: string | null = null;
-
-  try {
-    // Read file content
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Step 1: Basic validation
-    const validation = await validateSkill(buffer);
-
-    if (!validation.valid) {
-      return {
-        success: false,
-        validationErrors: validation.errors,
-        warnings: validation.warnings,
-      };
-    }
-
-    if (!validation.metadata) {
-      return { success: false, error: 'Could not parse skill metadata' };
-    }
-
-    const { metadata } = validation;
-    const version = metadata.version || '1.0.0';
-
-    // Step 2: Validate skill name matches
-    if (metadata.name !== existingSkill.name) {
-      return {
-        success: false,
-        error: `Skill name mismatch. Expected "${existingSkill.name}", got "${metadata.name}"`,
-        validationErrors: [
-          `The skill name in SKILL.md must match the existing skill name: "${existingSkill.name}"`,
-        ],
-      };
-    }
-
-    // Step 3: Run specification validation
-    console.log('[UploadVersion] Running specification validation...');
-    const specResult = await validateSpecification(buffer);
-
-    if (!specResult.passed) {
-      return {
-        success: false,
-        error: 'Skill specification validation failed',
-        validationErrors: specResult.errors,
-        warnings: specResult.warnings,
-        specValidationPassed: false,
-      };
-    }
-
-    // Step 4: Check if version already exists
-    const existingVersion = await prisma.skillVersion.findFirst({
-      where: {
-        skillId: existingSkill.id,
-        version,
-      },
-    });
-
-    if (existingVersion) {
-      return { success: false, error: `Version ${version} already exists` };
-    }
-
-    // Step 5: Save the file
-    const storageKey = `skills/${existingSkill.id}/${version}.zip`;
-    const storage = getStorageProvider();
-    await storage.upload(storageKey, buffer, { contentType: 'application/zip' });
-    filePath = storageKey;
-
-    // Parse skill to get file list
-    const parsedSkill = await parseSkillZip(buffer);
-
-    // Step 6: Create skill version
-    const skillVersion = await prisma.skillVersion.create({
-      data: {
-        skillId: existingSkill.id,
-        version,
-        changelog: changelog || undefined,
-        filePath,
-        status: SkillStatus.APPROVED,
-        createdBy: session.user.id,
-        specValidationPassed: true,
-        specValidationErrors: specResult.warnings.length > 0 ? specResult.warnings : undefined,
-        processingComplete: false,
-      },
-    });
-
-    versionId = skillVersion.id;
-
-    // Create skill files records with content for text files
-    await prisma.skillFile.createMany({
-      data: parsedSkill.files.map((f) => ({
-        skillVersionId: skillVersion.id,
-        filePath: f.path,
-        fileType: f.type,
-        sizeBytes: f.size,
-        content: getTextContent(f.content, f.path, f.size),
-      })),
-    });
-
-    // Create audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'UPLOAD_SKILL_VERSION',
-        resource: 'skill',
-        resourceId: existingSkill.id,
-        metadata: { version, name: metadata.name },
-      },
-    });
-
-    // Record contribution if team skill
-    if (existingSkill.teamId) {
-      await recordContribution(
-        existingSkill.teamId,
-        session.user.id,
-        ContributionType.SKILL_UPLOADED,
-        existingSkill.id
-      );
-    }
-
-    // Step 7: Trigger async security analysis
-    triggerSecurityAnalysis(skillVersion.id, buffer, parsedSkill, filePath).catch(console.error);
-
-    revalidatePath('/dashboard/skills');
-    revalidatePath(`/dashboard/skills/${skillId}`);
-    revalidatePath('/marketplace');
-
-    return {
-      success: true,
-      skillId: existingSkill.id,
-      versionId: skillVersion.id,
-      warnings: [...(validation.warnings || []), ...(specResult.warnings || [])].length > 0
-        ? [...(validation.warnings || []), ...(specResult.warnings || [])]
-        : undefined,
-      specValidationPassed: true,
-    };
-  } catch (error) {
-    console.error('Upload version error:', error);
-
-    // Clean up on error
-    if (versionId || filePath) {
-      await cleanupFailedUpload(skillId, versionId, filePath);
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Upload failed',
-    };
   }
 }
 

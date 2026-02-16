@@ -59,7 +59,7 @@ export default async function DashboardPage() {
       where: { visibility: 'PUBLIC' },
       take: 5,
       orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, slug: true, description: true },
+      select: { id: true, name: true, fullSlug: true, description: true },
     }),
   ]);
 
@@ -162,14 +162,14 @@ export default async function DashboardPage() {
               {recentSkills.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No skills yet</p>
               ) : (
-                recentSkills.map((skill: { id: string; name: string; slug: string; description: string | null }) => (
+                recentSkills.map((skill: { id: string; name: string; fullSlug: string; description: string | null }) => (
                   <div
                     key={skill.id}
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div>
                       <Link
-                        href={`/marketplace/${skill.id}`}
+                        href={`/marketplace/${skill.fullSlug}`}
                         className="font-medium hover:underline"
                       >
                         {skill.name}
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
                         {skill.description}
                       </p>
                     </div>
-                    <Link href={`/marketplace/${skill.id}`}>
+                    <Link href={`/marketplace/${skill.fullSlug}`}>
                       <Button variant="ghost" size="sm">View</Button>
                     </Link>
                   </div>

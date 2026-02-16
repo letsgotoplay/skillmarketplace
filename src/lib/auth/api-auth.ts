@@ -11,6 +11,9 @@ export interface AuthUser {
   role: string;
   scopes?: TokenScope[];
   authType: 'session' | 'token';
+  // Token-specific info (null for session auth)
+  tokenId?: string;
+  tokenPrefix?: string;
 }
 
 export interface ApiTokenValidationResult {
@@ -84,6 +87,8 @@ export async function validateApiToken(token: string): Promise<ApiTokenValidatio
         role: apiToken.user.role,
         scopes: apiToken.scopes,
         authType: 'token',
+        tokenId: apiToken.id,
+        tokenPrefix: apiToken.tokenPrefix,
       },
     };
   } catch (error) {
@@ -181,4 +186,39 @@ export async function requireScope(request: Request, scope: TokenScope): Promise
     throw new Error(`Missing required scope: ${scope}`);
   }
   return user;
+}
+
+/**
+ * Extract client info from request headers
+ */
+export function getClientInfo(request: Request): {
+  userAgent: string | null;
+  ip: string | null;
+} {
+  const userAgent = request.headers.get('user-agent');
+  // Try various headers for IP (proxies, load balancers, etc.)
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    request.headers.get('cf-connecting-ip') || // Cloudflare
+    null;
+
+  return { userAgent, ip };
+}
+
+/**
+ * Build auth metadata for audit logs
+ */
+export function buildAuthMetadata(
+  authUser: AuthUser | null,
+  request: Request
+): Record<string, unknown> {
+  const { userAgent, ip } = getClientInfo(request);
+
+  return {
+    authType: authUser?.authType || 'anonymous',
+    tokenId: authUser?.tokenPrefix || null,
+    userAgent,
+    ip,
+  };
 }

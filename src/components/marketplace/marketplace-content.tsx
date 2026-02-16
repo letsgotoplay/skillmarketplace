@@ -8,6 +8,7 @@ interface Skill {
   id: string;
   name: string;
   slug: string;
+  fullSlug: string;
   description: string | null;
   category: Category;
   tags: string[];

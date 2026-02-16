@@ -1,9 +1,12 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getAuthUser } from '@/lib/auth/api-auth';
+import { getAuthUser, hasScope } from '@/lib/auth/api-auth';
 import { getSkills } from '@/app/actions/skills';
-import { NextResponse } from 'next/server';
-import { Category } from '@prisma/client';
+import { processSkillUpload } from '@/lib/skills/upload';
+import { createAuditLog, AuditActions } from '@/lib/audit';
+import { NextRequest, NextResponse } from 'next/server';
+import { Category, Visibility, TokenScope } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
 /**
  * @openapi
@@ -92,4 +95,164 @@ export async function GET(request: Request) {
   const result = await getSkills(options);
 
   return NextResponse.json(result);
+}
+
+/**
+ * @openapi
+ * /skills:
+ *   post:
+ *     tags: [Skills]
+ *     summary: Upload a new skill
+ *     description: Upload a skill package (ZIP file) to the marketplace. Requires SKILL_WRITE scope for API tokens.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Skill ZIP file containing SKILL.md
+ *               visibility:
+ *                 type: string
+ *                 enum: [PUBLIC, TEAM_ONLY, PRIVATE]
+ *                 default: PUBLIC
+ *                 description: Skill visibility
+ *               category:
+ *                 type: string
+ *                 enum: [DEVELOPMENT, SECURITY, DATA, AIML, TESTING, INTEGRATION]
+ *                 description: Skill category (auto-detected if not provided)
+ *               tags:
+ *                 type: string
+ *                 description: Comma-separated list of tags (auto-detected if not provided)
+ *               teamId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Team ID to associate the skill with
+ *               changelog:
+ *                 type: string
+ *                 description: Version changelog
+ *     responses:
+ *       201:
+ *         description: Skill uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 skillId:
+ *                   type: string
+ *                 versionId:
+ *                   type: string
+ *                 slug:
+ *                   type: string
+ *                 fullSlug:
+ *                   type: string
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - missing required scope
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Authenticate user (supports both session and API token)
+    const authUser = await getAuthUser(request);
+
+    if (!authUser) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Check for SKILL_WRITE scope (required for API tokens)
+    if (!hasScope(authUser, TokenScope.SKILL_WRITE)) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required scope: SKILL_WRITE' },
+        { status: 403 }
+      );
+    }
+
+    // Parse multipart form data
+    const formData = await request.formData();
+    const file = formData.get('file') as File | null;
+
+    if (!file) {
+      return NextResponse.json(
+        { success: false, error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    // Extract form fields
+    const visibility = (formData.get('visibility') as Visibility) || 'PUBLIC';
+    const category = formData.get('category') as Category | null;
+    const tagsString = formData.get('tags') as string | null;
+    const tags = tagsString ? tagsString.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : [];
+    const teamId = formData.get('teamId') as string | null;
+    const changelog = formData.get('changelog') as string | null;
+
+    // Get user's emailPrefix for slug generation
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: { emailPrefix: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 401 }
+      );
+    }
+
+    // Process upload
+    const result = await processSkillUpload({
+      userId: authUser.id,
+      emailPrefix: user.emailPrefix,
+      file,
+      fileName: file.name,
+      visibility,
+      category: category || undefined,
+      tags,
+      teamId,
+      changelog,
+    });
+
+    if (!result.success) {
+      const status = result.validationErrors ? 400 : 500;
+      return NextResponse.json(result, { status });
+    }
+
+    // Create enhanced audit log
+    await createAuditLog({
+      userId: authUser.id,
+      action: AuditActions.UPLOAD_SKILL,
+      resource: 'skill',
+      resourceId: result.skillId,
+      metadata: {
+        version: result.versionId,
+        slug: result.slug,
+        fullSlug: result.fullSlug,
+        specValidationPassed: result.specValidationPassed,
+      },
+      authUser,
+      request,
+    });
+
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    console.error('Upload API error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }

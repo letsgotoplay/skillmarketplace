@@ -198,6 +198,103 @@ export default function ApiReferencePage() {
           </CardContent>
         </Card>
 
+        {/* Upload Skill */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/10">POST</Badge>
+              <code className="text-sm font-mono">/api/skills</code>
+            </div>
+            <CardTitle>Upload Skill</CardTitle>
+            <CardDescription>Upload a new skill package (ZIP file). Requires authentication with SKILL_WRITE scope.</CardDescription>
+          </CardHeader>
+          <CardContent className="prose prose-neutral dark:prose-invert max-w-none">
+            <h4 className="text-sm font-semibold mb-2">Request</h4>
+            <p className="text-sm text-muted-foreground mb-2">
+              Content-Type: <code>multipart/form-data</code>
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3">Field</th>
+                    <th className="text-left py-2 px-3">Type</th>
+                    <th className="text-left py-2 px-3">Required</th>
+                    <th className="text-left py-2 px-3">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="py-2 px-3"><code>file</code></td>
+                    <td className="py-2 px-3">File</td>
+                    <td className="py-2 px-3">Yes</td>
+                    <td className="py-2 px-3">ZIP file containing SKILL.md</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2 px-3"><code>visibility</code></td>
+                    <td className="py-2 px-3">string</td>
+                    <td className="py-2 px-3">No</td>
+                    <td className="py-2 px-3">PUBLIC, TEAM_ONLY, or PRIVATE (default: PUBLIC)</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2 px-3"><code>category</code></td>
+                    <td className="py-2 px-3">string</td>
+                    <td className="py-2 px-3">No</td>
+                    <td className="py-2 px-3">Skill category (auto-detected if not provided)</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2 px-3"><code>tags</code></td>
+                    <td className="py-2 px-3">string</td>
+                    <td className="py-2 px-3">No</td>
+                    <td className="py-2 px-3">Comma-separated tags (auto-detected if not provided)</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2 px-3"><code>teamId</code></td>
+                    <td className="py-2 px-3">string</td>
+                    <td className="py-2 px-3">No</td>
+                    <td className="py-2 px-3">Team UUID to associate skill with</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3"><code>changelog</code></td>
+                    <td className="py-2 px-3">string</td>
+                    <td className="py-2 px-3">No</td>
+                    <td className="py-2 px-3">Version changelog</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 className="text-sm font-semibold mt-4 mb-2">Response (201 Created)</h4>
+            <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
+{`{
+  "success": true,
+  "skillId": "uuid",
+  "versionId": "uuid",
+  "slug": "pdf-processing",
+  "fullSlug": "alice/pdf-processing",
+  "specValidationPassed": true
+}`}
+            </pre>
+
+            <h4 className="text-sm font-semibold mt-4 mb-2">Example (CLI / curl)</h4>
+            <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
+{`curl -X POST https://your-domain.com/api/skills \\
+  -H "Authorization: Bearer sh_your_token" \\
+  -F "file=@my-skill.zip" \\
+  -F "visibility=PUBLIC" \\
+  -F "category=DEVELOPMENT" \\
+  -F "tags=pdf,document,processing"`}
+            </pre>
+
+            <h4 className="text-sm font-semibold mt-4 mb-2">Errors</h4>
+            <ul className="text-sm">
+              <li><code>400</code> - Validation error (invalid ZIP, missing SKILL.md, etc.)</li>
+              <li><code>401</code> - Unauthorized (missing or invalid token)</li>
+              <li><code>403</code> - Forbidden (missing SKILL_WRITE scope)</li>
+            </ul>
+          </CardContent>
+        </Card>
+
         {/* Get Skill */}
         <Card className="mb-6">
           <CardHeader>
@@ -291,7 +388,7 @@ export default function ApiReferencePage() {
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
               <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/10">GET</Badge>
-              <code className="text-sm font-mono">/api/skills/{'{id}'}/download</code>
+              <code className="text-sm font-mono">/api/download/{'{id}'}</code>
             </div>
             <CardTitle>Download Skill</CardTitle>
             <CardDescription>Download skill files in various formats</CardDescription>
@@ -352,7 +449,7 @@ X-Security-Warning: false`}
 
             <h4 className="text-sm font-semibold mt-4 mb-2">Example</h4>
             <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
-{`GET /api/skills/{id}/download?type=scripts&version=1.2.0`}
+{`GET /api/download/{id or fullSlug}?type=scripts&version=1.2.0`}
             </pre>
           </CardContent>
         </Card>

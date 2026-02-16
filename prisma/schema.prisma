@@ -14,6 +14,7 @@ datasource db {
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
+  emailPrefix   String    @unique  // alice@example.com → alice, used for skill slugs
   passwordHash  String
   name          String?
   role          UserRole  @default(USER)
@@ -123,7 +124,8 @@ enum TeamRole {
 model Skill {
   id          String        @id @default(uuid())
   name        String
-  slug        String        // Unique per user (see @@unique below)
+  slug        String        // URL-friendly name (e.g., "pdf-reader")
+  fullSlug    String        @unique  // GitHub-style: alice/pdf-reader
   description String?
   category    Category      @default(DEVELOPMENT)
   tags        String[]      @default([])
@@ -142,7 +144,7 @@ model Skill {
   feedback      SkillFeedback[]
   downloads     DownloadRecord[]
 
-  @@unique([slug, authorId])  // Same skill name allowed for different users
+  @@unique([slug, authorId])  // Keep for backward compatibility
   @@index([authorId])
   @@index([teamId])
   @@index([visibility])

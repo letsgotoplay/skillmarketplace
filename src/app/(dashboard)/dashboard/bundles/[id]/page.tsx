@@ -6,7 +6,7 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowDown, Pencil } from 'lucide-react';
+import { ArrowLeft, ArrowDown, Pencil, Eye, EyeOff, Users } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -14,11 +14,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-const visibilityColors: Record<string, string> = {
-  PUBLIC: 'bg-green-100 text-green-700',
-  TEAM_ONLY: 'bg-blue-100 text-blue-700',
-  PRIVATE: 'bg-gray-100 text-gray-700',
+const visibilityConfig: Record<string, { color: string; icon: React.ReactNode }> = {
+  PUBLIC: { color: 'bg-green-100 text-green-700 border-green-200', icon: <Eye className="h-3 w-3" /> },
+  TEAM_ONLY: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: <Users className="h-3 w-3" /> },
+  PRIVATE: { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: <EyeOff className="h-3 w-3" /> },
 };
 
 export default async function BundleDetailPage({
@@ -36,6 +37,7 @@ export default async function BundleDetailPage({
     where: { id: params.id },
     include: {
       team: true,
+      stats: true,
       skills: {
         include: {
           skill: {
@@ -74,60 +76,69 @@ export default async function BundleDetailPage({
 
   return (
     <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold">{bundle.name}</h1>
-            <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-sm ${
-                visibilityColors[bundle.visibility]
-              }`}
-            >
-              {bundle.visibility.toLowerCase().replace('_', ' ')}
-            </span>
-          </div>
-          <p className="text-muted-foreground">
-            {bundle.description || 'No description'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/bundles">
-            <Button variant="outline">Back to Bundles</Button>
-          </Link>
-          {canEdit && (
-            <Link href={`/dashboard/bundles/${bundle.id}/edit`}>
-              <Button variant="outline">
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            </Link>
-          )}
-          <Link href={`/api/bundles/${bundle.id}/download`}>
-            <Button>
-              <ArrowDown className="h-4 w-4 mr-2" />
-              Download Bundle
-            </Button>
-          </Link>
-        </div>
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        <Link href="/dashboard/bundles" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Bundles
+        </Link>
       </div>
 
-      {/* Bundle Info */}
-      {bundle.team && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Team</CardTitle>
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-8">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <h1 className="text-3xl font-bold truncate">{bundle.name}</h1>
+            <Badge className={`border ${visibilityConfig[bundle.visibility].color}`}>
+              <span className="mr-1">{visibilityConfig[bundle.visibility].icon}</span>
+              {bundle.visibility.toLowerCase().replace('_', ' ')}
+            </Badge>
+          </div>
+          <p className="text-lg text-muted-foreground mb-4">
+            {bundle.description || 'No description'}
+          </p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>{bundle.skills.length} skill{bundle.skills.length !== 1 ? 's' : ''}</span>
+            {bundle.team && (
+              <>
+                <span>•</span>
+                <Link
+                  href={`/dashboard/teams/${bundle.team.id}`}
+                  className="hover:text-foreground"
+                >
+                  {bundle.team.name}
+                </Link>
+              </>
+            )}
+            <span>•</span>
+            <span>{bundle.stats?.downloadsCount ?? 0} downloads</span>
+          </div>
+        </div>
+
+        {/* Actions Card */}
+        <Card className="lg:w-64 shrink-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Actions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Link
-              href={`/dashboard/teams/${bundle.team.id}`}
-              className="text-primary hover:underline"
-            >
-              {bundle.team.name}
+          <CardContent className="space-y-2">
+            <Link href={`/api/bundles/${bundle.id}/download`} className="block">
+              <Button className="w-full" variant="default">
+                <ArrowDown className="h-4 w-4 mr-2" />
+                Download Bundle
+              </Button>
             </Link>
-            <p className="text-sm text-muted-foreground">{bundle.team.description}</p>
+
+            {canEdit && (
+              <Link href={`/dashboard/bundles/${bundle.id}/edit`} className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Bundle
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
-      )}
+      </div>
 
       {/* Skills in Bundle */}
       <Card>
@@ -141,7 +152,7 @@ export default async function BundleDetailPage({
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {bundle.skills.map(({ skill }) => (
-                <Link key={skill.id} href={`/dashboard/skills/${skill.id}`}>
+                <Link key={skill.id} href={`/dashboard/skills/${skill.fullSlug || skill.id}`}>
                   <Card className="h-full hover:border-primary transition-colors">
                     <CardHeader>
                       <CardTitle className="text-lg">{skill.name}</CardTitle>

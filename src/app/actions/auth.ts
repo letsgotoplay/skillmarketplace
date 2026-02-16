@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { hashPassword, validatePasswordStrength } from '@/lib/auth/password';
 import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
+import { extractEmailPrefix } from '@/lib/slug';
 
 export async function register(data: RegisterInput) {
   // Validate input
@@ -26,14 +27,27 @@ export async function register(data: RegisterInput) {
     };
   }
 
-  // Check if user already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
+  // Extract email prefix for slug generation
+  const emailPrefix = extractEmailPrefix(email);
+
+  // Check if user already exists (by email or emailPrefix)
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email },
+        { emailPrefix },
+      ],
+    },
   });
 
   if (existingUser) {
+    if (existingUser.email === email) {
+      return {
+        error: 'User with this email already exists',
+      };
+    }
     return {
-      error: 'User with this email already exists',
+      error: 'Username is already taken. Please use a different email address.',
     };
   }
 
@@ -45,6 +59,7 @@ export async function register(data: RegisterInput) {
       data: {
         name,
         email,
+        emailPrefix,
         passwordHash,
         role: 'USER',
       },

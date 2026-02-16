@@ -26,6 +26,7 @@ import { CopyButton } from '@/components/skill/copy-button';
 import { SkillFeedbackSection } from '@/components/skill/feedback-section';
 import { MarketplaceSecuritySection } from '@/components/security/marketplace-security-section';
 import type { SecurityFinding } from '@/lib/security/scanner';
+import { isUUID } from '@/lib/slug';
 
 const statusColors: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700',
@@ -43,17 +44,25 @@ const testStatusColors: Record<string, string> = {
 export default async function MarketplaceSkillPage({
   params,
 }: {
-  params: { id: string };
+  params: { slug: string[] };
 }) {
   const session = await getServerSession(authOptions);
 
+  // Join the slug array to get the full identifier
+  const identifier = params.slug.join('/');
+
+  // Determine if this is a UUID (backward compatibility) or a fullSlug
+  const isUuid = isUUID(identifier);
+
+  // Build the where clause based on identifier type
+  const where = isUuid
+    ? { id: identifier, visibility: 'PUBLIC' as const }
+    : { fullSlug: identifier, visibility: 'PUBLIC' as const };
+
   const skill = await prisma.skill.findFirst({
-    where: {
-      id: params.id,
-      visibility: 'PUBLIC',
-    },
+    where,
     include: {
-      author: { select: { name: true, email: true } },
+      author: { select: { name: true, email: true, emailPrefix: true } },
       team: { select: { name: true, slug: true } },
       stats: true,
       versions: {
@@ -92,7 +101,8 @@ export default async function MarketplaceSkillPage({
   const latestEval = latestVersion?.evals[0];
   const latestScan = latestVersion?.scans[0];
   const files = latestVersion?.files || [];
-  const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/marketplace/${skill.id}`;
+  // Use fullSlug for share URL if available, otherwise fall back to id
+  const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/marketplace/${skill.fullSlug || skill.id}`;
 
   return (
     <div className="container mx-auto py-8">
@@ -127,7 +137,7 @@ export default async function MarketplaceSkillPage({
         </div>
         <div className="flex flex-wrap gap-2">
           {session ? (
-            <Link href={`/api/skills/${skill.id}/download`}>
+            <Link href={`/api/download/${skill.fullSlug || skill.id}`}>
               <Button size="lg">
                 <ArrowDown className="h-4 w-4 mr-2" />
                 Download
@@ -390,12 +400,27 @@ export default async function MarketplaceSkillPage({
             <CardHeader>
               <CardTitle className="text-lg">Installation</CardTitle>
             </CardHeader>
-            <CardContent>
-              <code className="block p-3 bg-muted rounded text-sm overflow-x-auto">
-                claude skill install {skill.slug}
-              </code>
-              <p className="text-xs text-muted-foreground mt-2">
-                Or download and extract to your skills directory
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm font-medium mb-2">Install via CLI</p>
+                <div className="flex gap-2">
+                  <code className="flex-1 p-3 bg-muted rounded text-sm overflow-x-auto">
+                    skillhub add {skill.fullSlug}
+                  </code>
+                  <CopyButton text={`skillhub add ${skill.fullSlug}`} />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-2">Get skill info</p>
+                <div className="flex gap-2">
+                  <code className="flex-1 p-3 bg-muted rounded text-sm overflow-x-auto">
+                    skillhub info {skill.fullSlug}
+                  </code>
+                  <CopyButton text={`skillhub info ${skill.fullSlug}`} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Requires SkillHub CLI. Run <code className="px-1 py-0.5 bg-muted rounded text-xs">npm install -g skillhub-cli</code> to install.
               </p>
             </CardContent>
           </Card>

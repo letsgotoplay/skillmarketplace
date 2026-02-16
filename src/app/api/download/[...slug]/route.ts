@@ -7,6 +7,7 @@ import { getStorageProvider } from '@/lib/storage/provider';
 import { recordContribution } from '@/lib/teams/contributions';
 import JSZip from 'jszip';
 import { DownloadType, ContributionType } from '@prisma/client';
+import { isUUID } from '@/lib/slug';
 
 type DownloadTypeParam = 'full' | 'md' | 'scripts';
 
@@ -17,83 +18,17 @@ async function getUserId(request: NextRequest): Promise<string | null> {
   return session?.user?.id || authUser?.id || null;
 }
 
-/**
- * @openapi
- * /skills/{id}/download:
- *   get:
- *     tags: [Skills]
- *     summary: Download a skill
- *     description: Download skill files in various formats (full ZIP, SKILL.md only, or scripts only)
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Skill ID
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [full, md, scripts]
- *           default: full
- *         description: Download type - full (complete ZIP), md (SKILL.md only), scripts (code files only)
- *       - in: query
- *         name: version
- *         schema:
- *           type: string
- *         description: Specific version to download (defaults to latest)
- *     responses:
- *       200:
- *         description: Skill file download
- *         content:
- *           application/zip:
- *             schema:
- *               type: string
- *               format: binary
- *           text/markdown:
- *             schema:
- *               type: string
- *         headers:
- *           X-Security-Score:
- *             schema:
- *               type: integer
- *             description: Security score (0-100)
- *           X-Security-Risk-Level:
- *             schema:
- *               type: string
- *               enum: [low, medium, high, critical, unknown]
- *             description: Overall risk level
- *           X-Security-Warning:
- *             schema:
- *               type: string
- *             description: "true" if high/critical risk
- *       400:
- *         description: Invalid download type
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: Access denied
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Skill or version not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
+// Helper to resolve skill identifier (UUID or fullSlug)
+async function resolveSkill(identifier: string) {
+  if (isUUID(identifier)) {
+    return prisma.skill.findUnique({
+      where: { id: identifier },
+    });
+  }
+  return prisma.skill.findUnique({
+    where: { fullSlug: identifier },
+  });
+}
 
 /**
  * Get security info for a skill version
@@ -110,14 +45,10 @@ async function getSecurityInfo(skillVersionId: string) {
     return { score: null, riskLevel: 'unknown' };
   }
 
-  // Get pattern scan score
   const patternScore = version.scans[0]?.score ?? null;
-
-  // Get AI risk level
   const aiReport = version.aiSecurityReport as { riskLevel?: string } | null;
   const aiRiskLevel = aiReport?.riskLevel || 'unknown';
 
-  // Calculate overall risk level
   let overallRiskLevel: 'low' | 'medium' | 'high' | 'critical' | 'unknown' = 'unknown';
 
   if (patternScore !== null) {
@@ -132,7 +63,6 @@ async function getSecurityInfo(skillVersionId: string) {
     }
   }
 
-  // AI risk level takes precedence if it's higher
   const riskOrder = { low: 1, medium: 2, high: 3, critical: 4, unknown: 0 };
   if (riskOrder[aiRiskLevel as keyof typeof riskOrder] > riskOrder[overallRiskLevel]) {
     overallRiskLevel = aiRiskLevel as typeof overallRiskLevel;
@@ -147,7 +77,6 @@ async function getSecurityInfo(skillVersionId: string) {
 
 /**
  * Track download in database
- * Includes deduplication to prevent double-counting from duplicate requests
  */
 async function trackDownload(
   skillId: string,
@@ -155,8 +84,6 @@ async function trackDownload(
   downloadType: DownloadType,
   userId?: string
 ) {
-  // Check for recent duplicate download (within 5 seconds) to prevent double-counting
-  // This handles cases where browsers or React might send duplicate requests
   const fiveSecondsAgo = new Date(Date.now() - 5000);
 
   const recentDownload = await prisma.downloadRecord.findFirst({
@@ -168,14 +95,12 @@ async function trackDownload(
     },
   });
 
-  // If recent duplicate exists, don't count again
   if (recentDownload) {
     console.log(`[Download] Skipping duplicate count for skill ${skillId}`);
     return;
   }
 
   await prisma.$transaction([
-    // Update skill stats
     prisma.skillStat.update({
       where: { skillId },
       data: {
@@ -183,7 +108,6 @@ async function trackDownload(
         lastDownloadedAt: new Date(),
       },
     }),
-    // Create download record
     prisma.downloadRecord.create({
       data: {
         skillId,
@@ -198,10 +122,7 @@ async function trackDownload(
 /**
  * Download SKILL.md only
  */
-async function downloadSkillMd(
-  fileBuffer: Buffer,
-  skillSlug: string
-): Promise<NextResponse> {
+async function downloadSkillMd(fileBuffer: Buffer): Promise<NextResponse> {
   const zip = await JSZip.loadAsync(fileBuffer);
   const skillMd = zip.file('SKILL.md');
 
@@ -220,7 +141,7 @@ async function downloadSkillMd(
 }
 
 /**
- * Download scripts only (all .js, .ts, .py, .sh files as ZIP)
+ * Download scripts only
  */
 async function downloadScriptsZip(
   fileBuffer: Buffer,
@@ -273,25 +194,66 @@ async function downloadFullZip(
   });
 }
 
+/**
+ * @openapi
+ * /download/{id}:
+ *   get:
+ *     tags: [Skills]
+ *     summary: Download a skill
+ *     description: Download skill files in various formats. Supports both UUID and fullSlug.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Skill ID (UUID) or fullSlug (e.g., alice/pdf-reader)
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [full, md, scripts]
+ *           default: full
+ *         description: Download type
+ *       - in: query
+ *         name: version
+ *         schema:
+ *           type: string
+ *         description: Specific version to download (defaults to latest)
+ *     responses:
+ *       200:
+ *         description: Skill file download
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Skill or version not found
+ */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string[] }> }
 ) {
-  const { id } = await params;
+  const { slug } = await params;
+  const identifier = slug.join('/');
   const userId = await getUserId(request);
 
   const { searchParams } = new URL(request.url);
   const version = searchParams.get('version');
   const type = (searchParams.get('type') || 'full') as DownloadTypeParam;
 
-  // Validate download type
   if (!['full', 'md', 'scripts'].includes(type)) {
     return NextResponse.json({ error: 'Invalid download type. Use: full, md, or scripts' }, { status: 400 });
   }
 
-  // Find the skill
-  const skill = await prisma.skill.findUnique({
-    where: { id },
+  const skill = await resolveSkill(identifier);
+
+  if (!skill) {
+    return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+  }
+
+  const skillWithVersions = await prisma.skill.findUnique({
+    where: { id: skill.id },
     include: {
       versions: version
         ? { where: { version } }
@@ -299,20 +261,20 @@ export async function GET(
     },
   });
 
-  if (!skill || skill.versions.length === 0) {
+  if (!skillWithVersions || skillWithVersions.versions.length === 0) {
     return NextResponse.json({ error: 'Skill or version not found' }, { status: 404 });
   }
 
   // Check access
-  if (skill.visibility !== 'PUBLIC') {
+  if (skillWithVersions.visibility !== 'PUBLIC') {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (skill.authorId !== userId && skill.teamId) {
+    if (skillWithVersions.authorId !== userId && skillWithVersions.teamId) {
       const membership = await prisma.teamMember.findFirst({
         where: {
-          teamId: skill.teamId,
+          teamId: skillWithVersions.teamId,
           userId: userId,
         },
       });
@@ -323,75 +285,67 @@ export async function GET(
     }
   }
 
-  const skillVersion = skill.versions[0];
+  const skillVersion = skillWithVersions.versions[0];
 
   try {
-    // Download from storage provider
     const storage = getStorageProvider();
     const fileBuffer = await storage.download(skillVersion.filePath);
 
-    // Get security info for headers
     const securityInfo = await getSecurityInfo(skillVersion.id);
 
-    // Map download type to enum
     const downloadTypeMap: Record<DownloadTypeParam, DownloadType> = {
       full: 'FULL_ZIP',
       md: 'SKILL_MD',
       scripts: 'SCRIPTS_ZIP',
     };
 
-    // Track download
-    await trackDownload(skill.id, skillVersion.version, downloadTypeMap[type], userId || undefined);
+    await trackDownload(skillWithVersions.id, skillVersion.version, downloadTypeMap[type], userId || undefined);
 
-    // Create audit log
     if (userId) {
       await prisma.auditLog.create({
         data: {
           userId: userId,
           action: 'DOWNLOAD_SKILL',
           resource: 'skill',
-          resourceId: skill.id,
+          resourceId: skillWithVersions.id,
           metadata: { version: skillVersion.version, type },
         },
       });
 
-      // Record team contribution if user is downloading a team skill
-      if (skill.teamId) {
+      if (skillWithVersions.teamId) {
         const membership = await prisma.teamMember.findFirst({
           where: {
-            teamId: skill.teamId,
+            teamId: skillWithVersions.teamId,
             userId: userId,
           },
         });
 
         if (membership) {
           await recordContribution(
-            skill.teamId,
+            skillWithVersions.teamId,
             userId,
             ContributionType.SKILL_DOWNLOADED,
-            skill.id
+            skillWithVersions.id
           );
         }
       }
     }
 
-    // Generate response based on type
     let response: NextResponse;
 
     switch (type) {
       case 'md':
-        response = await downloadSkillMd(fileBuffer, skill.slug);
+        response = await downloadSkillMd(fileBuffer);
         break;
       case 'scripts':
-        response = await downloadScriptsZip(fileBuffer, skill.slug);
+        response = await downloadScriptsZip(fileBuffer, skillWithVersions.slug);
         break;
       case 'full':
       default:
-        response = await downloadFullZip(fileBuffer, skill.slug, skillVersion.version);
+        response = await downloadFullZip(fileBuffer, skillWithVersions.slug, skillVersion.version);
         break;
     }
 
-    // Add security warning headers
     response.headers.set('X-Security-Score', String(securityInfo.score ?? 'unknown'));
     response.headers.set('X-Security-Risk-Level', securityInfo.riskLevel);
     response.headers.set(

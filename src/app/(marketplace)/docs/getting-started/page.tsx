@@ -358,11 +358,11 @@ X-Security-Warning: false`}
 {`# List skills
 GET /api/skills?category=development&search=pdf
 
-# Get skill details
-GET /api/skills/{id}
+# Get skill details (supports UUID or fullSlug like alice/pdf-reader)
+GET /api/skills/{id or fullSlug}
 
-# Download skill
-GET /api/skills/{id}/download?type=full
+# Download skill (supports UUID or fullSlug)
+GET /api/download/{id or fullSlug}?type=full
 
 # Check security status
 GET /api/skills/{id}/security-status

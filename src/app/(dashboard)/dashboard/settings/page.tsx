@@ -88,7 +88,7 @@ export default function SettingsPage() {
           <div className="space-y-2">
             <p className="text-sm font-medium">3. Or set environment variable:</p>
             <code className="block rounded bg-muted p-3 text-sm font-mono">
-              SKILLHUB_TOKEN=sh_your_token skillhub search "pdf"
+              SKILLHUB_TOKEN=sh_your_token skillhub search &quot;pdf&quot;
             </code>
           </div>
         </CardContent>

@@ -10,6 +10,7 @@ export async function getUsers() {
     {
       id: 'user-admin-001',
       email: 'admin@example.com',
+      emailPrefix: 'admin',
       passwordHash,
       name: 'Admin User',
       role: UserRole.ADMIN,
@@ -17,6 +18,7 @@ export async function getUsers() {
     {
       id: 'user-alice-001',
       email: 'alice@example.com',
+      emailPrefix: 'alice',
       passwordHash,
       name: 'Alice Johnson',
       role: UserRole.USER,
@@ -24,6 +26,7 @@ export async function getUsers() {
     {
       id: 'user-bob-001',
       email: 'bob@example.com',
+      emailPrefix: 'bob',
       passwordHash,
       name: 'Bob Smith',
       role: UserRole.USER,
@@ -31,6 +34,7 @@ export async function getUsers() {
     {
       id: 'user-charlie-001',
       email: 'charlie@example.com',
+      emailPrefix: 'charlie',
       passwordHash,
       name: 'Charlie Brown',
       role: UserRole.USER,
@@ -38,6 +42,7 @@ export async function getUsers() {
     {
       id: 'user-diana-001',
       email: 'diana@example.com',
+      emailPrefix: 'diana',
       passwordHash,
       name: 'Diana Prince',
       role: UserRole.USER,
@@ -45,6 +50,7 @@ export async function getUsers() {
     {
       id: 'user-eve-001',
       email: 'eve@example.com',
+      emailPrefix: 'eve',
       passwordHash,
       name: 'Eve Williams',
       role: UserRole.USER,
