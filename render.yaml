@@ -1,0 +1,69 @@
+# Render Blueprint for SkillMarketplace
+# https://render.com/docs/blueprint-spec
+#
+# Prerequisites:
+# 1. Create a Supabase project at https://supabase.com
+# 2. Get connection strings from Settings > Database > Connection string
+# 3. Create a Storage bucket named "skillmarketplace"
+# 4. Get service_role key from Settings > API
+
+services:
+  - type: web
+    name: skillmarketplace
+    env: node
+    region: oregon # or singapore for Asia
+    buildCommand: pnpm install && pnpm db:generate && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Supabase Database (Transaction mode - port 6543)
+      - key: DATABASE_URL
+        sync: false # Set manually: postgresql://postgres.[REF]:[PASSWORD]@...pooler.supabase.com:6543/postgres?pgbouncer=true
+      # Supabase Database (Session mode - port 5432 via pooler)
+      - key: DIRECT_URL
+        sync: false # Set manually: postgresql://postgres.[REF]:[PASSWORD]@...pooler.supabase.com:5432/postgres
+      # Note: Use pooler endpoints (not db.xxx.supabase.co) for better connectivity
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: NEXTAUTH_URL
+        value: https://skillmarketplace.onrender.com # Change to your domain
+      # Supabase Storage (Optional - uses local filesystem if not set)
+      # - key: S3_ENDPOINT
+      #   value: https://[REF].supabase.co/storage/v1/s3
+      # - key: S3_ACCESS_KEY
+      #   sync: false # Set to service_role key
+      # - key: S3_SECRET_KEY
+      #   sync: false # Set to service_role secret
+      # - key: S3_BUCKET
+      #   value: skillmarketplace
+      # - key: S3_FORCE_PATH_STYLE
+      #   value: "true"
+      # AI Security Analysis (Optional)
+      # - key: AI_SECURITY_API_KEY
+      #   sync: false
+      # - key: AI_SECURITY_BASE_URL
+      #   value: https://open.bigmodel.cn/api/anthropic
+      # - key: AI_SECURITY_MODEL
+      #   value: GLM-4
+      # Evaluation (Optional - requires Redis)
+      # - key: REDIS_URL
+      #   sync: false
+
+# Note: Using Supabase for database, no Render database needed
+# If you want to use Render's PostgreSQL instead, uncomment below:
+#
+# databases:
+#   - name: skillmarketplace-db
+#     databaseName: skillmarketplace
+#     user: skillmarket
+#     plan: free
+
+# To deploy:
+# 1. Push this file to your repo
+# 2. Go to https://dashboard.render.com
+# 3. Click "New" > "Blueprint"
+# 4. Connect your repo
+# 5. Set DATABASE_URL and DIRECT_URL from Supabase
+# 6. Deploy

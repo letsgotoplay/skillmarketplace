@@ -1,16 +1,51 @@
-import { Queue, Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import { Queue } from 'bullmq';
 import { prisma } from '@/lib/db';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL;
 const EVAL_QUEUE_NAME = 'skill-evaluation';
 
-// Redis connection options
-const connectionOptions = {
-  host: new URL(REDIS_URL).hostname || 'localhost',
-  port: parseInt(new URL(REDIS_URL).port) || 6379,
-  maxRetriesPerRequest: null,
-};
+/**
+ * Check if evaluation system is enabled (requires Redis)
+ */
+export function isEvalEnabled(): boolean {
+  return !!REDIS_URL;
+}
+
+// Lazy-loaded queue - only created when Redis is available
+let _evalQueue: Queue | null = null;
+
+function getEvalQueue(): Queue | null {
+  if (!REDIS_URL) {
+    return null;
+  }
+  if (!_evalQueue) {
+    const connectionOptions = {
+      host: new URL(REDIS_URL).hostname || 'localhost',
+      port: parseInt(new URL(REDIS_URL).port) || 6379,
+      maxRetriesPerRequest: null,
+    };
+    _evalQueue = new Queue(EVAL_QUEUE_NAME, {
+      connection: connectionOptions,
+      defaultJobOptions: {
+        attempts: 1,
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      },
+    });
+  }
+  return _evalQueue;
+}
+
+// For backwards compatibility
+export const evalQueue = new Proxy({} as Queue, {
+  get(_, prop) {
+    const queue = getEvalQueue();
+    if (!queue) {
+      throw new Error('Eval queue not available - REDIS_URL not configured');
+    }
+    return Reflect.get(queue, prop, queue);
+  },
+});
 
 // Evaluation job data
 export interface EvalJobData {
@@ -38,24 +73,21 @@ export interface EvalJobResult {
   error?: string;
 }
 
-// Create the evaluation queue
-export const evalQueue = new Queue<EvalJobData>(EVAL_QUEUE_NAME, {
-  connection: connectionOptions,
-  defaultJobOptions: {
-    attempts: 1,
-    removeOnComplete: 100,
-    removeOnFail: 50,
-  },
-});
-
 /**
  * Add an evaluation job to the queue
+ * Returns null if eval is disabled (no Redis configured)
  */
 export async function queueEvaluation(
   skillVersionId: string,
   testCases: EvalJobData['testCases'],
   skillPath: string
-): Promise<string> {
+): Promise<string | null> {
+  // Skip if eval is disabled
+  if (!isEvalEnabled()) {
+    console.log('Eval disabled - skipping evaluation queue');
+    return null;
+  }
+
   // Create eval queue record in database
   const evalRecord = await prisma.evalQueue.create({
     data: {
@@ -66,17 +98,20 @@ export async function queueEvaluation(
   });
 
   // Add job to BullMQ
-  await evalQueue.add(
-    'evaluate-skill',
-    {
-      skillVersionId,
-      testCases,
-      skillPath,
-    },
-    {
-      jobId: evalRecord.id,
-    }
-  );
+  const queue = getEvalQueue();
+  if (queue) {
+    await queue.add(
+      'evaluate-skill',
+      {
+        skillVersionId,
+        testCases,
+        skillPath,
+      },
+      {
+        jobId: evalRecord.id,
+      }
+    );
+  }
 
   return evalRecord.id;
 }
@@ -152,8 +187,3 @@ export async function getSkillVersionEvals(skillVersionId: string) {
     orderBy: { createdAt: 'desc' },
   });
 }
-
-// Close connection on process exit
-process.on('SIGTERM', async () => {
-  await evalQueue.close();
-});

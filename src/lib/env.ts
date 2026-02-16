@@ -4,8 +4,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(1),
   NEXTAUTH_URL: z.string().url(),
-  REDIS_URL: z.string(),
-  UPLOAD_DIR: z.string().default('./uploads'),
+  REDIS_URL: z.string().optional(), // Optional - required only for skill evaluation
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   // MinIO / S3 Storage
   S3_ENDPOINT: z.string().default('http://localhost:9000'),
@@ -29,7 +28,6 @@ export function parseEnv(env: Record<string, string | undefined>): Env {
     NEXTAUTH_SECRET: env.NEXTAUTH_SECRET,
     NEXTAUTH_URL: env.NEXTAUTH_URL,
     REDIS_URL: env.REDIS_URL,
-    UPLOAD_DIR: env.UPLOAD_DIR,
     NODE_ENV: env.NODE_ENV,
     S3_ENDPOINT: env.S3_ENDPOINT,
     S3_ACCESS_KEY: env.S3_ACCESS_KEY,

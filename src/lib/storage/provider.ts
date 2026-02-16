@@ -14,9 +14,8 @@ export interface StorageProvider {
 
 import { env } from '../env';
 
-// Lazy-loaded providers
+// Lazy-loaded provider
 let _s3Provider: StorageProvider | null = null;
-let _localProvider: StorageProvider | null = null;
 
 /**
  * S3/MinIO Storage Provider
@@ -103,87 +102,13 @@ class S3StorageProvider implements StorageProvider {
 }
 
 /**
- * Local Filesystem Storage Provider
- */
-class LocalStorageProvider implements StorageProvider {
-  private baseDir: string;
-
-  constructor() {
-    this.baseDir = env.UPLOAD_DIR;
-  }
-
-  private getFullPath(key: string): string {
-    const path = require('path');
-    return path.join(this.baseDir, key);
-  }
-
-  async upload(key: string, data: Buffer, _options?: { contentType?: string; metadata?: Record<string, string> }): Promise<void> {
-    const { writeFile, mkdir } = require('fs/promises');
-    const path = require('path');
-    const fullPath = this.getFullPath(key);
-
-    // Ensure directory exists
-    await mkdir(path.dirname(fullPath), { recursive: true });
-    await writeFile(fullPath, data);
-  }
-
-  async download(key: string): Promise<Buffer> {
-    const { readFile } = require('fs/promises');
-    const fullPath = this.getFullPath(key);
-    return readFile(fullPath);
-  }
-
-  async delete(key: string): Promise<void> {
-    const { rm } = require('fs/promises');
-    const fullPath = this.getFullPath(key);
-    await rm(fullPath, { force: true });
-  }
-
-  async exists(key: string): Promise<boolean> {
-    const { access } = require('fs/promises');
-    try {
-      await access(this.getFullPath(key));
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async getMetadata(key: string): Promise<{ size: number; contentType: string; lastModified: Date }> {
-    const { stat } = require('fs/promises');
-    const fullPath = this.getFullPath(key);
-    const stats = await stat(fullPath);
-
-    return {
-      size: stats.size,
-      contentType: 'application/octet-stream',
-      lastModified: stats.mtime,
-    };
-  }
-
-  getUrl(key: string): string {
-    return this.getFullPath(key);
-  }
-}
-
-/**
- * Get the storage provider based on environment configuration
+ * Get the storage provider (S3/MinIO only)
  */
 export function getStorageProvider(): StorageProvider {
-  // Use S3 if endpoint is configured
-  const useS3 = env.S3_ENDPOINT && env.S3_ENDPOINT !== '';
-
-  if (useS3) {
-    if (!_s3Provider) {
-      _s3Provider = new S3StorageProvider();
-    }
-    return _s3Provider;
+  if (!_s3Provider) {
+    _s3Provider = new S3StorageProvider();
   }
-
-  if (!_localProvider) {
-    _localProvider = new LocalStorageProvider();
-  }
-  return _localProvider;
+  return _s3Provider;
 }
 
 /**

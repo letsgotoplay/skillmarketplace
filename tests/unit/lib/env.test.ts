@@ -6,7 +6,6 @@ describe('Environment Configuration', () => {
     NEXTAUTH_SECRET: 'test-secret-key',
     NEXTAUTH_URL: 'http://localhost:3000',
     REDIS_URL: 'redis://localhost:6379',
-    UPLOAD_DIR: './uploads',
     NODE_ENV: 'development' as const,
     S3_ENDPOINT: 'http://localhost:9000',
     S3_ACCESS_KEY: 'minioadmin',
@@ -34,7 +33,6 @@ describe('Environment Configuration', () => {
         REDIS_URL: 'redis://localhost:6379',
       };
       const result = parseEnv(minimalEnv);
-      expect(result.UPLOAD_DIR).toBe('./uploads');
       expect(result.S3_ENDPOINT).toBe('http://localhost:9000');
       expect(result.S3_BUCKET).toBe('skillmarketplace');
       expect(result.AI_SECURITY_BASE_URL).toBe('https://api.anthropic.com');

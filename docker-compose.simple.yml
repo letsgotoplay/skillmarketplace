@@ -1,0 +1,25 @@
+# Simplified Docker Compose for local development
+# Only includes PostgreSQL - no Redis or Sandbox
+# Use this when you don't need the evaluation system
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: skillmarketplace-postgres
+    environment:
+      POSTGRES_USER: skillmarket
+      POSTGRES_PASSWORD: skillmarket123
+      POSTGRES_DB: skillmarketplace
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillmarket -d skillmarketplace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

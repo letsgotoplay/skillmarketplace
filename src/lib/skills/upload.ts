@@ -4,7 +4,7 @@ import { SkillStatus, Visibility, Category, ContributionType, TokenScope } from 
 import { validateSpecification } from '@/lib/specification';
 import { scanSkill, storeSecurityScan } from '@/lib/security/scanner';
 import { analyzeWithAI, analyzeSkillMetadata } from '@/lib/security/ai-analyzer';
-import { queueEvaluation } from '@/lib/eval/queue';
+import { queueEvaluation, isEvalEnabled } from '@/lib/eval/queue';
 import { parseTestConfig } from '@/lib/skills/validation';
 import { getStorageProvider } from '@/lib/storage/provider';
 import { recordContribution } from '@/lib/teams/contributions';
@@ -359,21 +359,25 @@ async function triggerSecurityAnalysis(
       },
     });
 
-    // Step 3: Queue Evaluation if tests exist
+    // Step 3: Queue Evaluation if tests exist and eval is enabled
     const testConfig = parseTestConfig(parsedSkill);
     if (testConfig && testConfig.testCases && testConfig.testCases.length > 0) {
-      console.log(`[SecurityAnalysis] Queuing evaluation with ${testConfig.testCases.length} test cases...`);
-      await queueEvaluation(
-        skillVersionId,
-        testConfig.testCases.map(tc => ({
-          name: tc.name,
-          input: tc.input,
-          expectedOutput: tc.expectedOutput,
-          expectedPatterns: tc.expectedPatterns,
-          timeout: tc.timeout || 30000,
-        })),
-        filePath
-      );
+      if (isEvalEnabled()) {
+        console.log(`[SecurityAnalysis] Queuing evaluation with ${testConfig.testCases.length} test cases...`);
+        await queueEvaluation(
+          skillVersionId,
+          testConfig.testCases.map(tc => ({
+            name: tc.name,
+            input: tc.input,
+            expectedOutput: tc.expectedOutput,
+            expectedPatterns: tc.expectedPatterns,
+            timeout: tc.timeout || 30000,
+          })),
+          filePath
+        );
+      } else {
+        console.log('[SecurityAnalysis] Eval disabled (no Redis) - skipping test evaluation');
+      }
     }
 
     // Step 4: Mark processing complete
