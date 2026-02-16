@@ -17,6 +17,16 @@ import {
 // Blog posts data
 const blogPosts = [
   {
+    slug: 'introducing-skillhub-cli',
+    title: 'Introducing SkillHub CLI: Manage Skills from Your Terminal',
+    description: 'A powerful command-line tool to search, install, and manage AI agent skills across Claude Code, Cursor, GitHub Copilot, and 8 other platforms.',
+    date: 'February 2026',
+    category: 'Announcement',
+    tags: ['CLI', 'Tools'],
+    readTime: '6 min read',
+    featured: true,
+  },
+  {
     slug: 'why-enterprise-skill-hub',
     title: 'Why Build an Enterprise Internal Skill Hub?',
     description: 'A deep dive into why enterprises need their own AI agent skill repositories, and how security-first design enables safe adoption of agentic AI at scale.',
@@ -24,7 +34,7 @@ const blogPosts = [
     category: 'Engineering',
     tags: ['Enterprise', 'Security'],
     readTime: '8 min read',
-    featured: true,
+    featured: false,
   },
   {
     slug: 'developer-guide',

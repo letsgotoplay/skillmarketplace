@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { Package, Menu, X } from 'lucide-react';
 import { useState } from 'react';
@@ -17,6 +17,7 @@ export function SiteHeader() {
   const navItems = [
     { href: '/marketplace', label: 'Marketplace' },
     { href: '/analytics', label: 'Analytics' },
+    { href: '/blog', label: 'Blog' },
     { href: '/docs', label: 'Docs' },
   ];
 
@@ -57,15 +58,15 @@ export function SiteHeader() {
               <Link href="/dashboard">
                 <Button variant="ghost">Dashboard</Button>
               </Link>
-              <Button variant="outline" onClick={() => signOut({ callbackUrl: window.location.origin })}>
+              <Button variant="outline" onClick={() => signOut({ callbackUrl: '/' })}>
                 Sign Out
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" onClick={() => signIn()}>
-                Sign In
-              </Button>
+              <Link href="/login">
+                <Button variant="ghost">Sign In</Button>
+              </Link>
               <Link href="/register">
                 <Button>Get Started</Button>
               </Link>
@@ -104,15 +105,15 @@ export function SiteHeader() {
                   <Link href="/dashboard" className="block">
                     <Button variant="ghost" className="w-full">Dashboard</Button>
                   </Link>
-                  <Button variant="outline" className="w-full" onClick={() => signOut({ callbackUrl: window.location.origin })}>
+                  <Button variant="outline" className="w-full" onClick={() => signOut({ callbackUrl: '/' })}>
                     Sign Out
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" className="w-full" onClick={() => signIn()}>
-                    Sign In
-                  </Button>
+                  <Link href="/login" className="block">
+                    <Button variant="ghost" className="w-full">Sign In</Button>
+                  </Link>
                   <Link href="/register" className="block">
                     <Button className="w-full">Get Started</Button>
                   </Link>
