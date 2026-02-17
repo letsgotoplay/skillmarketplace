@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db';
 import { validateSkill, parseSkillZip } from '@/lib/skills';
 import { SkillStatus, Visibility, Category, ContributionType, TokenScope } from '@prisma/client';
 import { validateSpecification } from '@/lib/specification';
-import { scanSkill, storeSecurityScan } from '@/lib/security/scanner';
+import { scanSkill, storeSecurityScan, updateSecurityScoreAfterAI } from '@/lib/security/scanner';
 import { analyzeWithAI, analyzeSkillMetadata } from '@/lib/security/ai-analyzer';
 import { queueEvaluation, isEvalEnabled } from '@/lib/eval/queue';
 import { parseTestConfig } from '@/lib/skills/validation';
@@ -358,6 +358,9 @@ async function triggerSecurityAnalysis(
         aiSecurityReport: JSON.parse(JSON.stringify(aiReport)),
       },
     });
+
+    // Step 2.5: Update security score with combined findings
+    await updateSecurityScoreAfterAI(skillVersionId);
 
     // Step 3: Queue Evaluation if tests exist and eval is enabled
     const testConfig = parseTestConfig(parsedSkill);

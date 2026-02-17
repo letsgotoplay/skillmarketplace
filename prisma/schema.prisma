@@ -16,13 +16,14 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   emailPrefix   String    @unique  // alice@example.com → alice, used for skill slugs
-  passwordHash  String
+  passwordHash  String?            // Optional for OAuth users
   name          String?
   role          UserRole  @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Relations
+  accounts      Account[]
   skills        Skill[]
   teamMembers   TeamMember[]
   skillVersions SkillVersion[]
@@ -33,6 +34,40 @@ model User {
   apiTokens     ApiToken[]
 
   @@map("users")
+}
+
+// ============================================
+// OAuth Accounts (for NextAuth)
+// ============================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 enum UserRole {

@@ -9,7 +9,7 @@ import { validateSkill, parseSkillZip } from '@/lib/skills';
 import { validateSpecification } from '@/lib/specification';
 import { getStorageProvider } from '@/lib/storage/provider';
 import { getTextContent } from '@/lib/config/file-preview';
-import { scanSkill, storeSecurityScan } from '@/lib/security/scanner';
+import { scanSkill, storeSecurityScan, updateSecurityScoreAfterAI } from '@/lib/security/scanner';
 import { analyzeWithAI } from '@/lib/security/ai-analyzer';
 import { queueEvaluation } from '@/lib/eval/queue';
 import { parseTestConfig } from '@/lib/skills/validation';
@@ -601,6 +601,9 @@ async function triggerSecurityAnalysis(
         aiSecurityReport: JSON.parse(JSON.stringify(aiReport)),
       },
     });
+
+    // Update security score with combined findings
+    await updateSecurityScoreAfterAI(skillVersionId);
 
     const testConfig = parseTestConfig(parsedSkill);
     if (testConfig?.testCases?.length) {

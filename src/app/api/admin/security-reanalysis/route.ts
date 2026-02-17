@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { analyzeWithAI, type AIAnalysisConfig } from '@/lib/security/ai-analyzer';
 import { getStorageProvider } from '@/lib/storage/provider';
+import { updateSecurityScoreAfterAI } from '@/lib/security/scanner';
 
 // Schema for re-analysis request
 const ReanalysisRequestSchema = z.object({
@@ -203,6 +204,9 @@ export async function POST(request: NextRequest) {
             aiSecurityReport: JSON.parse(JSON.stringify(report)),
           },
         });
+
+        // Update security score with combined findings
+        await updateSecurityScoreAfterAI(skillVersion.id);
 
         results.push({
           skillId: skillVersion.skillId,

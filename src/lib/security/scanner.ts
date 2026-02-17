@@ -745,14 +745,13 @@ export async function storeSecurityScan(
   skillVersionId: string,
   report: SecurityReport
 ): Promise<void> {
+  const score = calculateSecurityScore(report.summary);
+
   await prisma.securityScan.create({
     data: {
       skillVersionId,
       status: 'COMPLETED',
-      // Keep score for backward compatibility, but it's derived from riskLevel now
-      score: report.riskLevel === 'critical' ? 0 :
-             report.riskLevel === 'high' ? 25 :
-             report.riskLevel === 'medium' ? 50 : 75,
+      score,
       reportJson: JSON.parse(JSON.stringify(report)),
     },
   });
@@ -808,4 +807,60 @@ export async function getCombinedSecurityReport(skillVersionId: string): Promise
     aiReport,
     combinedRiskLevel,
   };
+}
+
+/**
+ * Calculate combined summary from pattern scan and AI findings
+ */
+export function calculateCombinedSummary(
+  patternFindings: SecurityFinding[],
+  aiFindings: SecurityFinding[]
+): SecurityReport['summary'] {
+  const allFindings = [...patternFindings, ...aiFindings];
+  return {
+    critical: allFindings.filter((f) => f.severity === 'critical').length,
+    high: allFindings.filter((f) => f.severity === 'high').length,
+    medium: allFindings.filter((f) => f.severity === 'medium').length,
+    low: allFindings.filter((f) => f.severity === 'low').length,
+    info: allFindings.filter((f) => f.severity === 'info').length,
+    total: allFindings.length,
+  };
+}
+
+/**
+ * Update security score after AI analysis completes
+ * This merges pattern and AI findings to calculate the final score
+ */
+export async function updateSecurityScoreAfterAI(skillVersionId: string): Promise<void> {
+  const [scan, skillVersion] = await Promise.all([
+    getSecurityScan(skillVersionId),
+    prisma.skillVersion.findUnique({
+      where: { id: skillVersionId },
+      select: { aiSecurityReport: true },
+    }),
+  ]);
+
+  if (!scan) {
+    // No pattern scan exists, nothing to update
+    return;
+  }
+
+  const patternScan = scan.reportJson as SecurityReport | null;
+  const aiReport = skillVersion?.aiSecurityReport as Record<string, unknown> | null;
+
+  // Get findings from both sources
+  const patternFindings = patternScan?.findings || [];
+  const aiFindings = (aiReport?.threats as SecurityFinding[]) || [];
+
+  // Calculate combined summary
+  const combinedSummary = calculateCombinedSummary(patternFindings, aiFindings);
+
+  // Calculate new score
+  const newScore = calculateSecurityScore(combinedSummary);
+
+  // Update the security scan with new score
+  await prisma.securityScan.update({
+    where: { id: scan.id },
+    data: { score: newScore },
+  });
 }

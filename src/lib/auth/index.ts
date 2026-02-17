@@ -1,11 +1,42 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GitHubProvider from 'next-auth/providers/github';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/db';
 
+// Helper to generate unique emailPrefix
+async function generateUniqueEmailPrefix(email: string): Promise<string> {
+  const basePrefix = email.split('@')[0].toLowerCase();
+  let prefix = basePrefix;
+  let counter = 1;
+
+  while (await prisma.user.findUnique({ where: { emailPrefix: prefix } })) {
+    prefix = `${basePrefix}${counter}`;
+    counter++;
+  }
+
+  return prefix;
+}
+
+// Custom PrismaAdapter that handles emailPrefix generation for OAuth users
+function customPrismaAdapter() {
+  const adapter = PrismaAdapter(prisma);
+
+  // Override createUser to set emailPrefix
+  const originalCreateUser = adapter.createUser;
+  adapter.createUser = async (user: any) => {
+    if (!user.emailPrefix && user.email) {
+      user.emailPrefix = await generateUniqueEmailPrefix(user.email);
+    }
+    return originalCreateUser!(user);
+  };
+
+  return adapter;
+}
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: customPrismaAdapter(),
   session: {
     strategy: 'jwt',
   },
@@ -52,6 +83,15 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    // GitHub OAuth - only enabled if credentials are configured
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+      ? [
+          GitHubProvider({
+            clientId: process.env.GITHUB_CLIENT_ID,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET,
+          }),
+        ]
+      : []),
   ],
   callbacks: {
     async jwt({ token, user }) {

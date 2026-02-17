@@ -1,6 +1,7 @@
 import {
   scanSkill,
   calculateSecurityScore,
+  calculateCombinedSummary,
 } from '@/lib/security/scanner';
 import JSZip from 'jszip';
 
@@ -397,6 +398,93 @@ const content = fs.readFileSync('../../../etc/passwd', 'utf8');
       const score = calculateSecurityScore(summary);
       // 100 - 25 - 30 - 8 - 3 = 34
       expect(score).toBe(34);
+    });
+  });
+
+  describe('calculateCombinedSummary', () => {
+    it('should return zero summary for empty findings', () => {
+      const summary = calculateCombinedSummary([], []);
+      expect(summary).toEqual({
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        info: 0,
+        total: 0,
+      });
+    });
+
+    it('should count pattern findings correctly', () => {
+      const patternFindings = [
+        { id: '1', severity: 'critical' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'pattern' as const },
+        { id: '2', severity: 'high' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'pattern' as const },
+        { id: '3', severity: 'low' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'pattern' as const },
+      ];
+      const summary = calculateCombinedSummary(patternFindings, []);
+      expect(summary).toEqual({
+        critical: 1,
+        high: 1,
+        medium: 0,
+        low: 1,
+        info: 0,
+        total: 3,
+      });
+    });
+
+    it('should count AI findings correctly', () => {
+      const aiFindings = [
+        { id: '1', severity: 'medium' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'ai' as const },
+        { id: '2', severity: 'info' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'ai' as const },
+      ];
+      const summary = calculateCombinedSummary([], aiFindings);
+      expect(summary).toEqual({
+        critical: 0,
+        high: 0,
+        medium: 1,
+        low: 0,
+        info: 1,
+        total: 2,
+      });
+    });
+
+    it('should merge pattern and AI findings', () => {
+      const patternFindings = [
+        { id: '1', severity: 'critical' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'pattern' as const },
+        { id: '2', severity: 'low' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'pattern' as const },
+      ];
+      const aiFindings = [
+        { id: '3', severity: 'high' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'ai' as const },
+        { id: '4', severity: 'medium' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'ai' as const },
+        { id: '5', severity: 'low' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'ai' as const },
+      ];
+      const summary = calculateCombinedSummary(patternFindings, aiFindings);
+      expect(summary).toEqual({
+        critical: 1,
+        high: 1,
+        medium: 1,
+        low: 2,  // 1 from pattern + 1 from AI
+        info: 0,
+        total: 5,
+      });
+    });
+
+    it('should produce correct score when combined with calculateSecurityScore', () => {
+      // Pattern: 1 critical, 1 low
+      // AI: 1 high, 1 medium, 1 low
+      // Combined: 1 critical, 1 high, 1 medium, 2 low
+      // Score: 100 - 25 - 15 - 8 - 6 = 46
+      const patternFindings = [
+        { id: '1', severity: 'critical' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'pattern' as const },
+        { id: '2', severity: 'low' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'pattern' as const },
+      ];
+      const aiFindings = [
+        { id: '3', severity: 'high' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'ai' as const },
+        { id: '4', severity: 'medium' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'ai' as const },
+        { id: '5', severity: 'low' as const, category: 'Test', title: 'Test', description: 'Test', recommendation: 'Test', source: 'ai' as const },
+      ];
+      const summary = calculateCombinedSummary(patternFindings, aiFindings);
+      const score = calculateSecurityScore(summary);
+      expect(score).toBe(46);
     });
   });
 });
