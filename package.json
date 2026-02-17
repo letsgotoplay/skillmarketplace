@@ -2,6 +2,7 @@
   "name": "skillmarketplace",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -22,7 +23,8 @@
     "minio:console": "open http://localhost:9001",
     "minio:logs": "docker logs -f minio-local",
     "env:local": "cp .env.local.template .env.local && echo '✅ Switched to LOCAL environment (Docker PostgreSQL + MinIO)'",
-    "env:supabase": "cp .env.supabase.template .env.local && echo '✅ Switched to SUPABASE environment'"
+    "env:supabase": "cp .env.supabase.template .env.local && echo '✅ Switched to SUPABASE environment'",
+    "electron:dev": "concurrently \"pnpm dev\" \"wait-on http://localhost:3000 && electron .\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
@@ -80,6 +82,8 @@
     "@types/unzipper": "^0.10.11",
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
+    "electron": "^40.4.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.21",
     "jest": "^29.7.0",
@@ -92,6 +96,7 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "wait-on": "^9.0.4"
   }
 }

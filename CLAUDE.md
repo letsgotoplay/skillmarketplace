@@ -31,6 +31,9 @@ pnpm env:supabase           # Switch to Supabase
 # Storage
 pnpm minio:start            # Start local MinIO
 pnpm minio:stop             # Stop MinIO
+
+# Electron
+pnpm electron:dev           # Start Electron + Next.js dev server
 ```
 
 ## Test Credentials
@@ -55,6 +58,8 @@ src/
 │   ├── specification/      # SKILL.md parsing
 │   └── storage/            # S3/MinIO
 └── components/             # React components (shadcn/ui)
+electron/
+└── main.js                 # Electron main process
 ```
 
 ## Deployment

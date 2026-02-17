@@ -175,6 +175,10 @@ version: 1.0.0
 Detailed skill instructions...
 ```
 
+## Acknowledgements
+
+本项目使用 [智谱 GLM Coding](https://www.bigmodel.cn/glm-coding?ic=N6GOY36OLG) 提供的 AI 能力进行开发。
+
 ## License
 
 MIT
