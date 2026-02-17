@@ -357,11 +357,6 @@ scripts/extract.py`}
                   What are Skills
                 </Button>
               </Link>
-              <Link href="/docs/integrate-skills">
-                <Button size="lg">
-                  Integrate Skills
-                </Button>
-              </Link>
             </div>
           </CardContent>
         </Card>

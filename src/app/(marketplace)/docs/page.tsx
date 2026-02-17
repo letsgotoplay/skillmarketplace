@@ -112,18 +112,6 @@ export default function DocsPage() {
               </CardHeader>
             </Card>
           </Link>
-
-          <Link href="/docs/integrate-skills">
-            <Card className="h-full hover:border-primary transition-colors cursor-pointer">
-              <CardHeader>
-                <Zap className="h-8 w-8 text-primary mb-2" />
-                <CardTitle className="text-lg">Integrate Skills</CardTitle>
-                <CardDescription>
-                  Add skills support to your agent
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
         </div>
       </section>
 

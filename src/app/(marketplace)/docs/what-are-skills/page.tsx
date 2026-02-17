@@ -207,11 +207,6 @@ Use this skill when the user needs to work with PDF files...
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/docs/integrate-skills">
-                <Button size="lg" variant="outline">
-                  Integrate Skills
-                </Button>
-              </Link>
             </div>
           </CardContent>
         </Card>
