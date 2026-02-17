@@ -69,6 +69,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    if (!currentUser.passwordHash) {
+      return NextResponse.json({ error: 'Account uses OAuth, cannot change password' }, { status: 400 });
+    }
+
     // Verify current password
     const isValidPassword = await compare(currentPassword, currentUser.passwordHash);
     if (!isValidPassword) {
