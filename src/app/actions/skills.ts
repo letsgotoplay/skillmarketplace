@@ -9,6 +9,7 @@ import { SkillStatus, Visibility, Category, ContributionType } from '@prisma/cli
 import { validateSpecification } from '@/lib/specification';
 import { scanSkill, storeSecurityScan, updateSecurityScoreAfterAI } from '@/lib/security/scanner';
 import { analyzeWithAI, analyzeSkillMetadata } from '@/lib/security/ai-analyzer';
+import { getActiveSecurityConfig } from '@/lib/security/config';
 import { queueEvaluation } from '@/lib/eval/queue';
 import { parseTestConfig } from '@/lib/skills/validation';
 import { getStorageProvider } from '@/lib/storage/provider';
@@ -627,7 +628,8 @@ async function triggerSecurityAnalysis(
 
     // Step 2: AI Security Analysis
     console.log('[SecurityAnalysis] Running AI security analysis...');
-    const aiReport = await analyzeWithAI(buffer);
+    const aiConfig = await getActiveSecurityConfig();
+    const aiReport = await analyzeWithAI(buffer, aiConfig);
     await prisma.skillVersion.update({
       where: { id: skillVersionId },
       data: {

@@ -245,17 +245,17 @@ skillhub update my-skill  # Update specific skill`}</code>
             </p>
             <div className="grid md:grid-cols-2 gap-3 not-prose mt-4">
               {[
-                { name: 'Claude Code', id: 'claude-code', path: '.claude/CLAUDE.md' },
-                { name: 'Cursor', id: 'cursor', path: '.cursor/rules' },
-                { name: 'GitHub Copilot', id: 'copilot', path: '.github/copilot-instructions.md' },
-                { name: 'Windsurf', id: 'windsurf', path: '.windsurf/rules' },
-                { name: 'Cline', id: 'cline', path: '.cline/rules' },
-                { name: 'Codex', id: 'codex', path: 'CODEX.md' },
-                { name: 'OpenCode', id: 'opencode', path: '.opencode/instructions.md' },
-                { name: 'Goose', id: 'goose', path: '.goose/hints' },
-                { name: 'Kilo', id: 'kilo', path: '.kilo/config.yaml' },
-                { name: 'Roo', id: 'roo', path: '.roo/rules' },
-                { name: 'Trae', id: 'trae', path: '.trae/instructions.md' },
+                { name: 'Claude Code', id: 'claude-code', path: '.claude/skills' },
+                { name: 'Cursor', id: 'cursor', path: '.cursor/skills' },
+                { name: 'GitHub Copilot', id: 'copilot', path: '.github/skills' },
+                { name: 'Windsurf', id: 'windsurf', path: '.windsurf/skills' },
+                { name: 'Cline', id: 'cline', path: '.cline/skills' },
+                { name: 'Codex', id: 'codex', path: '.codex/skills' },
+                { name: 'OpenCode', id: 'opencode', path: '.opencode/skills' },
+                { name: 'Goose', id: 'goose', path: '.goose/skills' },
+                { name: 'Kilo', id: 'kilo', path: '.kilocode/skills' },
+                { name: 'Roo', id: 'roo', path: '.roo/skills' },
+                { name: 'Trae', id: 'trae', path: '.trae/skills' },
               ].map((tool) => (
                 <Card key={tool.id} className="p-3">
                   <div className="flex items-center justify-between">

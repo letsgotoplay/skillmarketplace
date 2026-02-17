@@ -11,6 +11,7 @@ import { getStorageProvider } from '@/lib/storage/provider';
 import { getTextContent } from '@/lib/config/file-preview';
 import { scanSkill, storeSecurityScan, updateSecurityScoreAfterAI } from '@/lib/security/scanner';
 import { analyzeWithAI } from '@/lib/security/ai-analyzer';
+import { getActiveSecurityConfig } from '@/lib/security/config';
 import { queueEvaluation } from '@/lib/eval/queue';
 import { parseTestConfig } from '@/lib/skills/validation';
 import { createAuditLog, AuditActions } from '@/lib/audit';
@@ -593,7 +594,8 @@ async function triggerSecurityAnalysis(
     const securityReport = await scanSkill(buffer);
     await storeSecurityScan(skillVersionId, securityReport);
 
-    const aiReport = await analyzeWithAI(buffer);
+    const aiConfig = await getActiveSecurityConfig();
+    const aiReport = await analyzeWithAI(buffer, aiConfig);
     await prisma.skillVersion.update({
       where: { id: skillVersionId },
       data: {
