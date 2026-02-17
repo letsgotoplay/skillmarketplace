@@ -29,6 +29,11 @@ services:
         generateValue: true
       - key: NEXTAUTH_URL
         value: https://skillmarketplace.onrender.com # Change to your domain
+      # GitHub OAuth
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
       # Supabase Storage (S3-compatible)
       - key: S3_ENDPOINT
         value: https://iskogmoqejcxclhmdnef.supabase.co/storage/v1/s3

@@ -20,7 +20,9 @@
     "minio:start": "docker run -d --name minio-local -p 9000:9000 -p 9001:9001 -v \"$(pwd)/minio-data\":/data -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin123 minio/minio server /data --console-address \":9001\"",
     "minio:stop": "docker stop minio-local && docker rm minio-local",
     "minio:console": "open http://localhost:9001",
-    "minio:logs": "docker logs -f minio-local"
+    "minio:logs": "docker logs -f minio-local",
+    "env:local": "cp .env.local .env && echo '✅ Switched to LOCAL environment (Docker PostgreSQL + MinIO)'",
+    "env:supabase": "cp .env.supabase .env && echo '✅ Switched to SUPABASE environment'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
