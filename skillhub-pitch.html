@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillHub - Enterprise AI Agent Skills Marketplace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           Dark Botanical - Elegant, sophisticated
+           =========================================== */
+        :root {
+            /* Colors */
+            --bg: #0d1117;
+            --bg-card: rgba(22, 27, 34, 0.8);
+            --text: #f0f6fc;
+            --text-muted: #8b949e;
+            --text-dim: #6e7681;
+            --accent: #58a6ff;
+            --accent-glow: rgba(88, 166, 255, 0.15);
+            --teal: #3fb9a7;
+            --purple: #a371f7;
+            --border: rgba(255, 255, 255, 0.08);
+
+            /* Typography */
+            --font-display: 'Cormorant Garamond', serif;
+            --font-body: 'DM Sans', sans-serif;
+            --title-size: clamp(2.5rem, 8vw, 6rem);
+            --h2-size: clamp(1.75rem, 5vw, 3.5rem);
+            --h3-size: clamp(1.25rem, 3vw, 1.75rem);
+            --body-size: clamp(0.875rem, 1.5vw, 1.125rem);
+            --small-size: clamp(0.75rem, 1.2vw, 0.875rem);
+
+            /* Spacing */
+            --slide-padding: clamp(2rem, 5vw, 5rem);
+            --content-gap: clamp(1rem, 2vw, 2rem);
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.8s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            height: 100%;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Background Effects */
+        .bg-gradient {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 20% 80%, rgba(63, 185, 167, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 20%, rgba(163, 113, 247, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 50% 50% at 50% 50%, rgba(88, 166, 255, 0.03) 0%, transparent 70%),
+                var(--bg);
+            z-index: 0;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: float 10s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        .orb--teal {
+            width: clamp(200px, 30vw, 400px);
+            height: clamp(200px, 30vw, 400px);
+            background: var(--teal);
+            top: 10%;
+            left: -10%;
+        }
+
+        .orb--purple {
+            width: clamp(150px, 25vw, 300px);
+            height: clamp(150px, 25vw, 300px);
+            background: var(--purple);
+            bottom: 10%;
+            right: -5%;
+            animation-delay: -4s;
+        }
+
+        .orb--blue {
+            width: clamp(100px, 20vw, 200px);
+            height: clamp(100px, 20vw, 200px);
+            background: var(--accent);
+            top: 50%;
+            left: 60%;
+            animation-delay: -7s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -30px) scale(1.05); }
+        }
+
+        /* Typography */
+        .tag {
+            font-size: var(--small-size);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--teal);
+            margin-bottom: clamp(0.75rem, 2vw, 1.5rem);
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 300;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            margin-bottom: clamp(1rem, 2vw, 2rem);
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 400;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+            margin-bottom: clamp(1rem, 2vw, 1.5rem);
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-weight: 400;
+            color: var(--text-muted);
+            max-width: 600px;
+            line-height: 1.7;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: clamp(1.5rem, 3vw, 2.5rem);
+        }
+
+        .divider-line {
+            width: 60px;
+            height: 1px;
+            background: linear-gradient(90deg, var(--teal), transparent);
+        }
+
+        .divider-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--teal);
+            border-radius: 50%;
+        }
+
+        /* Lists */
+        .list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.75rem, 1.5vw, 1.25rem);
+        }
+
+        .list-item {
+            display: flex;
+            align-items: flex-start;
+            gap: clamp(0.75rem, 1.5vw, 1rem);
+            font-size: var(--body-size);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .list-icon {
+            flex-shrink: 0;
+            width: clamp(24px, 2vw, 32px);
+            height: clamp(24px, 2vw, 32px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(63, 185, 167, 0.15);
+            color: var(--teal);
+            margin-top: 2px;
+        }
+
+        .list-icon svg {
+            width: clamp(14px, 1.2vw, 18px);
+            height: clamp(14px, 1.2vw, 18px);
+        }
+
+        .list-item--warning .list-icon {
+            background: rgba(255, 123, 114, 0.15);
+            color: #ff7b72;
+        }
+
+        /* Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+            gap: clamp(1rem, 2vw, 1.5rem);
+            margin-top: clamp(1.5rem, 3vw, 2rem);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: clamp(1.25rem, 2vw, 1.5rem);
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.125rem, 2vw, 1.375rem);
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-text {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(0.75rem, 1.5vw, 1.25rem);
+            margin-top: clamp(1.5rem, 3vw, 2rem);
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: clamp(0.75rem, 1.5vw, 1rem);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .feature-icon {
+            width: clamp(36px, 3vw, 44px);
+            height: clamp(36px, 3vw, 44px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(63, 185, 167, 0.1);
+            border-radius: 10px;
+            color: var(--teal);
+        }
+
+        .feature-icon svg {
+            width: clamp(18px, 1.5vw, 22px);
+            height: clamp(18px, 1.5vw, 22px);
+        }
+
+        .feature-text {
+            font-size: var(--small-size);
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* Stats (Slide 7) */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: clamp(1rem, 2vw, 1.5rem);
+            margin-top: clamp(2rem, 4vw, 3rem);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: clamp(1.25rem, 2vw, 1.75rem);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            color: var(--teal);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: clamp(1rem, 2vw, 1.5rem);
+            margin-top: clamp(1rem, 2vw, 1.5rem);
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+            color: var(--text-muted);
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        .code-line {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .code-comment { color: var(--text-dim); }
+        .code-keyword { color: var(--purple); }
+        .code-string { color: var(--teal); }
+
+        /* CTA */
+        .cta-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(0.75rem, 1.5vw, 1rem);
+            margin-top: clamp(1.5rem, 3vw, 2rem);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: clamp(0.75rem, 1.5vw, 1rem) clamp(1.25rem, 2vw, 1.75rem);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            font-weight: 500;
+            border-radius: 100px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-primary {
+            background: var(--teal);
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            background: #4dc4b6;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--teal);
+            color: var(--teal);
+        }
+
+        /* Navigation */
+        .nav-dots {
+            position: fixed;
+            right: clamp(1rem, 2vw, 2rem);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot:hover { background: var(--text-dim); }
+        .nav-dot.active {
+            background: var(--teal);
+            transform: scale(1.2);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: var(--teal);
+            z-index: 100;
+            transition: width 0.3s ease;
+        }
+
+        /* Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        .reveal-list .list-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal-list .list-item:nth-child(1) { transition-delay: 0.3s; }
+        .slide.visible .reveal-list .list-item:nth-child(2) { transition-delay: 0.4s; }
+        .slide.visible .reveal-list .list-item:nth-child(3) { transition-delay: 0.5s; }
+        .slide.visible .reveal-list .list-item:nth-child(4) { transition-delay: 0.6s; }
+
+        .slide.visible .reveal-list .list-item,
+        .slide.visible .reveal-grid .feature-item,
+        .slide.visible .reveal-stats .stat-item {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-grid .feature-item,
+        .reveal-stats .stat-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal-grid .feature-item:nth-child(1) { transition-delay: 0.2s; }
+        .slide.visible .reveal-grid .feature-item:nth-child(2) { transition-delay: 0.25s; }
+        .slide.visible .reveal-grid .feature-item:nth-child(3) { transition-delay: 0.3s; }
+        .slide.visible .reveal-grid .feature-item:nth-child(4) { transition-delay: 0.35s; }
+        .slide.visible .reveal-grid .feature-item:nth-child(5) { transition-delay: 0.4s; }
+        .slide.visible .reveal-grid .feature-item:nth-child(6) { transition-delay: 0.45s; }
+
+        .slide.visible .reveal-stats .stat-item:nth-child(1) { transition-delay: 0.2s; }
+        .slide.visible .reveal-stats .stat-item:nth-child(2) { transition-delay: 0.3s; }
+        .slide.visible .reveal-stats .stat-item:nth-child(3) { transition-delay: 0.4s; }
+        .slide.visible .reveal-stats .stat-item:nth-child(4) { transition-delay: 0.5s; }
+
+        /* Responsive */
+        @media (max-height: 700px) {
+            :root { --slide-padding: clamp(1.5rem, 4vw, 3rem); }
+            .orb { opacity: 0.2; }
+        }
+
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(1rem, 3vw, 2rem);
+                --title-size: clamp(2rem, 6vw, 4rem);
+            }
+            .orb { display: none; }
+            .nav-dots { display: none; }
+        }
+
+        @media (max-width: 900px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .feature-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            .feature-grid { grid-template-columns: 1fr; }
+            .grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- Slide 1: Title -->
+    <section class="slide" id="slide-1">
+        <div class="bg-gradient"></div>
+        <div class="orb orb--teal"></div>
+        <div class="orb orb--purple"></div>
+        <div class="orb orb--blue"></div>
+
+        <div class="slide-content">
+            <p class="tag reveal">Enterprise Marketplace</p>
+            <h1 class="reveal">SkillHub</h1>
+            <p class="subtitle reveal">The enterprise marketplace for AI agent skills. Discover, validate, and deploy with enterprise-grade security.</p>
+            <div class="divider reveal">
+                <div class="divider-line"></div>
+                <div class="divider-dot"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 2: The Problem -->
+    <section class="slide" id="slide-2">
+        <div class="bg-gradient"></div>
+        <div class="orb orb--teal"></div>
+        <div class="orb orb--purple"></div>
+
+        <div class="slide-content">
+            <h2 class="reveal">Why Enterprises Need Their Own Skill Hub</h2>
+            <p class="subtitle reveal">Public skill marketplaces present significant challenges for enterprise adoption.</p>
+
+            <ul class="list reveal-list" style="margin-top: clamp(1.5rem, 3vw, 2rem);">
+                <li class="list-item list-item--warning">
+                    <span class="list-icon"><i data-lucide="alert-triangle"></i></span>
+                    <span><strong>Security Blind Spots</strong> — Malicious code, hidden backdoors, data exfiltration</span>
+                </li>
+                <li class="list-item list-item--warning">
+                    <span class="list-icon"><i data-lucide="file-warning"></i></span>
+                    <span><strong>Compliance Gaps</strong> — No audit trails of skill usage for regulated industries</span>
+                </li>
+                <li class="list-item list-item--warning">
+                    <span class="list-icon"><i data-lucide="badge-alert"></i></span>
+                    <span><strong>Quality Control Issues</strong> — Varying skill quality with no standardized testing</span>
+                </li>
+                <li class="list-item list-item--warning">
+                    <span class="list-icon"><i data-lucide="lock-open"></i></span>
+                    <span><strong>Knowledge Leakage</strong> — Exposing internal processes to third parties</span>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Slide 3: Our Solution -->
+    <section class="slide" id="slide-3">
+        <div class="bg-gradient"></div>
+        <div class="orb orb--teal"></div>
+        <div class="orb orb--blue"></div>
+
+        <div class="slide-content">
+            <h2 class="reveal">Security-First Architecture</h2>
+            <p class="subtitle reveal">Every skill is analyzed before it reaches your agents.</p>
+
+            <ul class="list reveal-list" style="margin-top: clamp(1.5rem, 3vw, 2rem);">
+                <li class="list-item">
+                    <span class="list-icon"><i data-lucide="scan-search"></i></span>
+                    <span><strong>Pattern-Based Scanning</strong> — 67+ vulnerability patterns detected automatically</span>
+                </li>
+                <li class="list-item">
+                    <span class="list-icon"><i data-lucide="brain"></i></span>
+                    <span><strong>AI-Powered Analysis</strong> — Semantic threat detection for subtle vulnerabilities</span>
+                </li>
+                <li class="list-item">
+                    <span class="list-icon"><i data-lucide="scroll-text"></i></span>
+                    <span><strong>Complete Audit Trails</strong> — Full compliance tracking for every action</span>
+                </li>
+                <li class="list-item">
+                    <span class="list-icon"><i data-lucide="users"></i></span>
+                    <span><strong>Team Collaboration</strong> — Fine-grained access controls and permissions</span>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Slide 4: Core Features -->
+    <section class="slide" id="slide-4">
+        <div class="bg-gradient"></div>
+        <div class="orb orb--purple"></div>
+        <div class="orb orb--blue"></div>
+
+        <div class="slide-content">
+            <h2 class="reveal">Core Features</h2>
+            <p class="subtitle reveal">Everything you need to safely manage AI agent skills.</p>
+
+            <div class="feature-grid reveal-grid">
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="package"></i></div>
+                    <span class="feature-text">Skill Hosting</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="shield-check"></i></div>
+                    <span class="feature-text">Security Scanning</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="test-tube-2"></i></div>
+                    <span class="feature-text">Skill Evaluation</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="users-round"></i></div>
+                    <span class="feature-text">Team Management</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="boxes"></i></div>
+                    <span class="feature-text">Skill Bundles</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="eye"></i></div>
+                    <span class="feature-text">File Preview</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 5: Target Users -->
+    <section class="slide" id="slide-5">
+        <div class="bg-gradient"></div>
+        <div class="orb orb--teal"></div>
+        <div class="orb orb--purple"></div>
+
+        <div class="slide-content">
+            <h2 class="reveal">Built for Enterprise Teams</h2>
+            <p class="subtitle reveal">Purpose-built for organizations with specific security and compliance needs.</p>
+
+            <div class="grid reveal" style="margin-top: clamp(1.5rem, 3vw, 2rem);">
+                <div class="card">
+                    <h3 class="card-title">Security Teams</h3>
+                    <p class="card-text">Penetration testing, vulnerability scanning, and incident response skills.</p>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Development Teams</h3>
+                    <p class="card-text">Code review, CI/CD, and debugging skills with quality standards.</p>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Data Teams</h3>
+                    <p class="card-text">Data analysis, ETL, and reporting skills with access controls.</p>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Operations Teams</h3>
+                    <p class="card-text">Deployment, monitoring, and maintenance with version control.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 6: SkillHub CLI -->
+    <section class="slide" id="slide-6">
+        <div class="bg-gradient"></div>
+        <div class="orb orb--teal"></div>
+        <div class="orb orb--blue"></div>
+
+        <div class="slide-content">
+            <h2 class="reveal">SkillHub CLI</h2>
+            <p class="subtitle reveal">Manage skills from your terminal. Supports 11 AI coding tools.</p>
+
+            <div class="code-block reveal">
+                <div class="code-line"><span class="code-comment"># Install globally</span></div>
+                <div class="code-line"><span class="code-keyword">npm</span> install -g @letsgotoplay/skillhub-cli</div>
+                <div class="code-line" style="margin-top: 0.5rem;"><span class="code-comment"># Search and install</span></div>
+                <div class="code-line"><span class="code-keyword">skillhub</span> search <span class="code-string">"pdf"</span></div>
+                <div class="code-line"><span class="code-keyword">skillhub</span> add my-skill -a claude-code,cursor</div>
+            </div>
+
+            <div class="feature-grid reveal-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: clamp(1rem, 2vw, 1.5rem);">
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="layers"></i></div>
+                    <span class="feature-text">Multi-platform</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="refresh-cw"></i></div>
+                    <span class="feature-text">Easy Updates</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="upload"></i></div>
+                    <span class="feature-text">Upload CLI</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i data-lucide="workflow"></i></div>
+                    <span class="feature-text">CI/CD Ready</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 7: Why SkillHub (Stats/Key Differentiators) -->
+    <section class="slide" id="slide-7">
+        <div class="bg-gradient"></div>
+        <div class="orb orb--purple"></div>
+        <div class="orb orb--blue"></div>
+
+        <div class="slide-content">
+            <h2 class="reveal">The SkillHub Difference</h2>
+            <p class="subtitle reveal">Enterprise-grade security that public marketplaces can't match.</p>
+
+            <div class="stats-grid reveal-stats">
+                <div class="stat-item">
+                    <div class="stat-number">67+</div>
+                    <div class="stat-label">Security Patterns</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">11</div>
+                    <div class="stat-label">AI Tools Supported</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Skills Scanned</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Audit Logging</div>
+                </div>
+            </div>
+
+            <div class="list reveal" style="margin-top: clamp(1.5rem, 3vw, 2rem); max-width: 600px;">
+                <div class="list-item">
+                    <span class="list-icon"><i data-lucide="check-circle"></i></span>
+                    <span><strong>Open Source</strong> — Self-host on your own infrastructure</span>
+                </div>
+                <div class="list-item">
+                    <span class="list-icon"><i data-lucide="check-circle"></i></span>
+                    <span><strong>Production Ready</strong> — Docker, PostgreSQL, Redis stack</span>
+                </li>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 8: Call to Action -->
+    <section class="slide" id="slide-8">
+        <div class="bg-gradient"></div>
+        <div class="orb orb--teal"></div>
+        <div class="orb orb--purple"></div>
+        <div class="orb orb--blue"></div>
+
+        <div class="slide-content" style="text-align: center; align-items: center;">
+            <h2 class="reveal" style="max-width: 600px;">Secure Your AI Agent Skills Today</h2>
+            <p class="subtitle reveal" style="text-align: center; max-width: 500px;">Join organizations using SkillHub to power their AI agents safely.</p>
+
+            <div class="cta-buttons reveal">
+                <button class="btn btn-primary">
+                    <i data-lucide="store"></i>
+                    Browse Marketplace
+                </button>
+                <button class="btn btn-secondary">
+                    <i data-lucide="upload"></i>
+                    Upload Your Skills
+                </button>
+            </div>
+
+            <div class="divider reveal" style="justify-content: center; margin-top: clamp(2rem, 4vw, 3rem);">
+                <div class="divider-line"></div>
+                <div class="divider-dot"></div>
+            </div>
+
+            <p class="reveal" style="margin-top: clamp(1rem, 2vw, 1.5rem); color: var(--text-dim); font-size: var(--small-size);">
+                Free to use · Open Source · Enterprise Ready
+            </p>
+        </div>
+    </section>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.progressBar = document.getElementById('progressBar');
+                this.navDots = document.getElementById('navDots');
+
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.updateProgress();
+            }
+
+            createNavDots() {
+                this.slides.forEach((_, index) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot';
+                    dot.setAttribute('aria-label', `Go to slide ${index + 1}`);
+                    dot.addEventListener('click', () => this.goToSlide(index));
+                    this.navDots.appendChild(dot);
+                });
+                this.updateNavDots();
+            }
+
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            this.currentSlide = Array.from(this.slides).indexOf(entry.target);
+                            this.updateProgress();
+                            this.updateNavDots();
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let touchStartX = 0;
+                let touchEndX = 0;
+
+                document.addEventListener('touchstart', (e) => {
+                    touchStartX = e.changedTouches[0].screenX;
+                });
+
+                document.addEventListener('touchend', (e) => {
+                    touchEndX = e.changedTouches[0].screenX;
+                    if (touchStartX - touchEndX > 50) {
+                        this.nextSlide();
+                    } else if (touchEndX - touchStartX > 50) {
+                        this.prevSlide();
+                    }
+                });
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.slides.length - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            goToSlide(index) {
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = `${progress}%`;
+            }
+
+            updateNavDots() {
+                const dots = this.navDots.querySelectorAll('.nav-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentSlide);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
