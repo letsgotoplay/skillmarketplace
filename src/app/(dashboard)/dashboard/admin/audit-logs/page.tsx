@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AuditLogList } from '@/components/admin/audit-log-list';
+import { prisma } from '@/lib/db';
 
 interface AuditLog {
   id: string;
@@ -19,11 +20,31 @@ interface AuditLog {
 }
 
 async function getAuditLogs(): Promise<{ logs: AuditLog[]; total: number }> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/admin/audit-logs`,
-    { cache: 'no-store' }
-  );
-  return res.json();
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    }),
+    prisma.auditLog.count(),
+  ]);
+
+  // Get unique user IDs and fetch user info
+  const userIds = Array.from(new Set(logs.filter((l) => l.userId).map((l) => l.userId))) as string[];
+  const users = userIds.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, email: true, name: true },
+      })
+    : [];
+
+  const userMap = new Map(users.map((u) => [u.id, u]));
+  const logsWithUsers = logs.map((log) => ({
+    ...log,
+    createdAt: log.createdAt.toISOString(),
+    user: log.userId ? userMap.get(log.userId) : null,
+  }));
+
+  return { logs: logsWithUsers, total };
 }
 
 function AuditLogSkeleton() {

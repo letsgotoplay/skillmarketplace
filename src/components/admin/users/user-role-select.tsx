@@ -59,7 +59,7 @@ export function UserRoleSelect({ userId, currentRole, onRoleChange, disabled }: 
         onValueChange={handleSelect}
         disabled={disabled || isLoading}
       >
-        <SelectTrigger className="w-[130px] h-8">
+        <SelectTrigger className="w-[150px] h-8">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
