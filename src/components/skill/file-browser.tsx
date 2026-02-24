@@ -6,6 +6,7 @@ import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Code, FileText, Do
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MAX_CONTENT_SIZE, TEXT_FILE_EXTENSIONS, formatFileSize } from '@/lib/config/file-preview';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 
 interface FileNode {
   name: string;
@@ -284,10 +285,8 @@ function FilePreview({ filename, fileType, fileSize, skillDescription, fileConte
           </div>
           <CopyContentButton content={fileContent} />
         </div>
-        <div className="bg-muted/30 rounded-lg overflow-hidden">
-          <pre className="p-4 text-sm overflow-auto max-h-[400px] whitespace-pre-wrap break-words">
-            {fileContent}
-          </pre>
+        <div className="bg-muted/30 rounded-lg overflow-hidden p-4 max-h-[400px] overflow-y-auto">
+          <MarkdownRenderer content={fileContent} />
         </div>
       </div>
     );

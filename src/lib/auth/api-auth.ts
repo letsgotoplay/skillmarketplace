@@ -157,7 +157,7 @@ export function hasScope(user: AuthUser | null, scope: TokenScope): boolean {
     const roleScopes: Record<string, TokenScope[]> = {
       ADMIN: Object.values(TokenScope),
       TEAM_ADMIN: [TokenScope.SKILL_READ, TokenScope.SKILL_WRITE, TokenScope.BUNDLE_READ, TokenScope.BUNDLE_WRITE, TokenScope.TEAM_READ],
-      USER: [TokenScope.SKILL_READ, TokenScope.BUNDLE_READ],
+      USER: [TokenScope.SKILL_READ, TokenScope.SKILL_WRITE, TokenScope.BUNDLE_READ],
     };
     return roleScopes[user.role]?.includes(scope) || false;
   }

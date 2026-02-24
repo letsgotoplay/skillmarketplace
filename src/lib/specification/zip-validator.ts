@@ -181,11 +181,6 @@ export async function validateSpecification(
         warnings.push('Skill description is very long (over 1000 characters)');
       }
 
-      // Check for prompts directory (recommended)
-      if (parsedSkill.prompts.size === 0) {
-        warnings.push('No prompt templates found in prompts/ directory');
-      }
-
       // Validate test configuration if present
       const testsFile = parsedSkill.resources.get('tests.json');
       if (testsFile) {

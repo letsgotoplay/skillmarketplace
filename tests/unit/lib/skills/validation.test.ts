@@ -207,16 +207,6 @@ name: Test
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('should return warnings for missing prompts', async () => {
-      const buffer = await createTestSkillZip();
-      const result = await validateSkill(buffer);
-
-      // By default we don't add prompts, so should get a warning
-      expect(result.warnings).toContain(
-        'No prompt templates found in prompts/ directory'
-      );
-    });
-
     it('should validate test configuration if present', async () => {
       const buffer = await createTestSkillZip({
         tests: {

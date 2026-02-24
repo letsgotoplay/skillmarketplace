@@ -154,11 +154,6 @@ export async function validateSkill(zipBuffer: Buffer): Promise<ValidationResult
       errors.push(...metadataResult.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`));
     }
 
-    // Check for recommended files
-    if (parsed.prompts.size === 0) {
-      warnings.push('No prompt templates found in prompts/ directory');
-    }
-
     // Validate test configuration if present
     const testsFile = parsed.resources.get(TESTS_FILE);
     if (testsFile) {

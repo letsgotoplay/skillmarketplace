@@ -22,6 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SecurityFindings } from '@/components/security/security-findings';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { cn } from '@/lib/utils';
 
 interface FileNode {
@@ -252,6 +253,7 @@ function FileViewer({ file }: { file: FileNode | null }) {
   const isBinary = !file.content;
   const isImage = file.path.match(/\.(png|jpg|jpeg|gif|svg|webp)$/i);
   const extension = file.path.split('.').pop()?.toLowerCase();
+  const isMarkdown = extension === 'md';
 
   return (
     <div className="h-full flex flex-col">
@@ -286,13 +288,12 @@ function FileViewer({ file }: { file: FileNode | null }) {
               )}
             </div>
           </div>
+        ) : isMarkdown ? (
+          <div className="p-4">
+            <MarkdownRenderer content={file.content || ''} />
+          </div>
         ) : (
-          <pre
-            className={cn(
-              'p-4 text-sm overflow-auto',
-              extension === 'md' && 'prose prose-sm dark:prose-invert max-w-none'
-            )}
-          >
+          <pre className="p-4 text-sm overflow-auto">
             <code>{file.content}</code>
           </pre>
         )}

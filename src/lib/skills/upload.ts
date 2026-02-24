@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { validateSkill, parseSkillZip } from '@/lib/skills';
-import { SkillStatus, Visibility, Category, ContributionType, TokenScope } from '@prisma/client';
+import { SkillStatus, Visibility, Category, ContributionType } from '@prisma/client';
 import { validateSpecification } from '@/lib/specification';
 import { scanSkill, storeSecurityScan, updateSecurityScoreAfterAI } from '@/lib/security/scanner';
 import { analyzeWithAI, analyzeSkillMetadata } from '@/lib/security/ai-analyzer';
@@ -206,8 +206,13 @@ export async function processSkillUpload(options: UploadOptions): Promise<Upload
     // For backwards compatibility with eval queue, keep local path reference
     filePath = storageKey;
 
-    // Parse skill to get file list
-    const parsedSkill = await parseSkillZip(buffer);
+    // Use the already-parsed skill from specification validation (avoid re-parsing)
+    const parsedSkill = specResult.parsedSkill;
+
+    if (!parsedSkill) {
+      // This shouldn't happen if spec validation passed, but handle it gracefully
+      return { success: false, error: 'Failed to parse skill files' };
+    }
 
     // Step 5: Create skill version with spec validation result
     const skillVersion = await prisma.skillVersion.create({

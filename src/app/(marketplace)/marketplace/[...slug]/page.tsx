@@ -101,7 +101,6 @@ export default async function MarketplaceSkillPage({
   const latestEval = latestVersion?.evals[0];
   const latestScan = latestVersion?.scans[0];
   const files = latestVersion?.files || [];
-  // Use fullSlug for share URL if available, otherwise fall back to id
   const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/marketplace/${skill.fullSlug || skill.id}`;
 
   return (
@@ -324,6 +323,27 @@ export default async function MarketplaceSkillPage({
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Installation - Most Important */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Installation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm font-medium mb-2">Install via CLI</p>
+                <div className="flex gap-2">
+                  <code className="flex-1 p-3 bg-muted rounded text-sm overflow-x-auto">
+                    skillhub add {skill.fullSlug}
+                  </code>
+                  <CopyButton text={`skillhub add ${skill.fullSlug}`} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Requires SkillHub CLI. Run <code className="px-1 py-0.5 bg-muted rounded text-xs">npm install -g skillhub-cli</code> to install.
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Share URL */}
           <Card>
             <CardHeader>
@@ -392,36 +412,6 @@ export default async function MarketplaceSkillPage({
                   </p>
                 )}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Install Instructions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Installation</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-2">Install via CLI</p>
-                <div className="flex gap-2">
-                  <code className="flex-1 p-3 bg-muted rounded text-sm overflow-x-auto">
-                    skillhub add {skill.fullSlug}
-                  </code>
-                  <CopyButton text={`skillhub add ${skill.fullSlug}`} />
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium mb-2">Get skill info</p>
-                <div className="flex gap-2">
-                  <code className="flex-1 p-3 bg-muted rounded text-sm overflow-x-auto">
-                    skillhub info {skill.fullSlug}
-                  </code>
-                  <CopyButton text={`skillhub info ${skill.fullSlug}`} />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Requires SkillHub CLI. Run <code className="px-1 py-0.5 bg-muted rounded text-xs">npm install -g skillhub-cli</code> to install.
-              </p>
             </CardContent>
           </Card>
         </div>

@@ -87,16 +87,6 @@ describe('ZIP Specification Validator', () => {
       expect(result.errors.some((e) => e.includes('node_modules/'))).toBe(true);
     });
 
-    it('should warn for missing prompts directory', async () => {
-      const buffer = await createTestSkillZip();
-
-      const result = await validateSpecification(buffer);
-
-      expect(result.warnings).toContain(
-        'No prompt templates found in prompts/ directory'
-      );
-    });
-
     it('should validate tests.json if present', async () => {
       const buffer = await createTestSkillZip({
         files: {
