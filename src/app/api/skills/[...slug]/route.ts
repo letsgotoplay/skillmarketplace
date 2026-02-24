@@ -477,6 +477,7 @@ export async function POST(
     // Validate the skill
     const validation = await validateSkill(buffer);
     if (!validation.valid || !validation.metadata) {
+      console.log('[API Upload] Validation failed:', validation.errors);
       return NextResponse.json({
         success: false,
         error: 'Validation failed',
@@ -498,8 +499,9 @@ export async function POST(
     }
 
     // Run specification validation
-    const specResult = await validateSpecification(buffer);
+    const specResult = await validateSpecification(buffer, validation.parsedSkill);
     if (!specResult.passed) {
+      console.log('[API Upload] Specification validation failed:', specResult.errors);
       return NextResponse.json({
         success: false,
         error: 'Specification validation failed',
@@ -524,8 +526,15 @@ export async function POST(
     const storage = getStorageProvider();
     await storage.upload(storageKey, buffer, { contentType: 'application/zip' });
 
-    // Parse skill files
-    const parsedSkill = await parseSkillZip(buffer);
+    // Use already-parsed skill from validation (avoid re-parsing)
+    const parsedSkill = validation.parsedSkill || specResult.parsedSkill;
+
+    if (!parsedSkill) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to parse skill files',
+      }, { status: 500 });
+    }
 
     // Create skill version
     const skillVersion = await prisma.skillVersion.create({

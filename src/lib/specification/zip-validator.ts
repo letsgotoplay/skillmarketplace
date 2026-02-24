@@ -100,9 +100,12 @@ export async function getSpecificationSchema(): Promise<SkillSpecificationSchema
 
 /**
  * Validate a skill ZIP buffer against the specification
+ * @param skillBuffer - ZIP file buffer
+ * @param preParsedSkill - Optional pre-parsed skill to avoid duplicate parsing
  */
 export async function validateSpecification(
-  skillBuffer: Buffer
+  skillBuffer: Buffer,
+  preParsedSkill?: ParsedSkill
 ): Promise<SpecValidationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -160,9 +163,9 @@ export async function validateSpecification(
       }
     }
 
-    // Parse the skill to validate metadata
+    // Parse the skill to validate metadata (use pre-parsed if available)
     try {
-      parsedSkill = await parseSkillZip(skillBuffer);
+      parsedSkill = preParsedSkill || await parseSkillZip(skillBuffer);
       metadata = parsedSkill.metadata;
 
       // Check required metadata fields

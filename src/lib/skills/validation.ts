@@ -139,14 +139,18 @@ export async function validateSkill(zipBuffer: Buffer): Promise<ValidationResult
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  console.log('[Validation] Starting skill validation...');
+
   // Check file size (max 50MB)
   if (zipBuffer.length > 50 * 1024 * 1024) {
+    console.log('[Validation] Failed: File size exceeds 50MB');
     errors.push('Skill package exceeds maximum size of 50MB');
     return { valid: false, errors, warnings };
   }
 
   try {
     const parsed = await parseSkillZip(zipBuffer);
+    console.log('[Validation] ZIP parsed successfully, skill name:', parsed.metadata.name);
 
     // Validate metadata
     const metadataResult = skillMetadataSchema.safeParse(parsed.metadata);
@@ -168,14 +172,18 @@ export async function validateSkill(zipBuffer: Buffer): Promise<ValidationResult
       }
     }
 
+    console.log('[Validation] Validation completed, valid:', errors.length === 0, 'errors:', errors.length, 'warnings:', warnings.length);
     return {
       valid: errors.length === 0,
       errors,
       warnings,
       metadata: parsed.metadata,
+      parsedSkill: parsed,
     };
   } catch (error) {
-    errors.push(error instanceof Error ? error.message : 'Unknown error during validation');
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error during validation';
+    console.log('[Validation] Failed:', errorMsg);
+    errors.push(errorMsg);
     return { valid: false, errors, warnings };
   }
 }

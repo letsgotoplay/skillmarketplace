@@ -37,6 +37,7 @@ export interface ValidationResult {
   errors: string[];
   warnings: string[];
   metadata?: SkillMetadata;
+  parsedSkill?: ParsedSkill;
 }
 
 // Test case for skill evaluation

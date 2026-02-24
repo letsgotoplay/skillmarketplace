@@ -82,6 +82,7 @@ export async function processSkillUpload(options: UploadOptions): Promise<Upload
     const validation = await validateSkill(buffer);
 
     if (!validation.valid) {
+      console.log('[Upload] Validation failed:', validation.errors);
       return {
         success: false,
         validationErrors: validation.errors,
@@ -90,6 +91,7 @@ export async function processSkillUpload(options: UploadOptions): Promise<Upload
     }
 
     if (!validation.metadata) {
+      console.log('[Upload] Failed: Could not parse skill metadata');
       return { success: false, error: 'Could not parse skill metadata' };
     }
 
@@ -101,7 +103,7 @@ export async function processSkillUpload(options: UploadOptions): Promise<Upload
 
     // Step 2: Run specification validation BEFORE saving
     console.log('[Upload] Running specification validation...');
-    const specResult = await validateSpecification(buffer);
+    const specResult = await validateSpecification(buffer, validation.parsedSkill);
 
     if (!specResult.passed) {
       console.log('[Upload] Specification validation failed:', specResult.errors);
