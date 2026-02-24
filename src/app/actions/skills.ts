@@ -89,7 +89,8 @@ export async function uploadSkill(formData: FormData): Promise<UploadResult> {
 
     const { metadata } = validation;
     const slug = generateSkillSlug(metadata.name);
-    const version = metadata.version || '1.0.0';
+    // Version is stored in metadata.metadata.version per spec, fallback to default
+    const version = metadata.metadata?.version || '1.0.0';
 
     // Get user's emailPrefix for fullSlug generation
     const user = await prisma.user.findUnique({
@@ -479,7 +480,8 @@ export async function uploadSkillVersion(
     }
 
     const { metadata } = validation;
-    const version = metadata.version || '1.0.0';
+    // Version is stored in metadata.metadata.version per spec, fallback to default
+    const version = metadata.metadata?.version || '1.0.0';
 
     // Step 2: Validate skill name matches
     if (metadata.name !== existingSkill.name) {

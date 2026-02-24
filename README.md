@@ -148,32 +148,6 @@ SkillHub provides two-layer security analysis:
    - Permission mismatch detection
    - Security recommendations
 
-## Skill Package Format
-
-A valid skill package is a ZIP file containing:
-
-```
-skill.zip
-├── SKILL.md          # Required: Skill definition with frontmatter
-├── index.js          # Main entry point
-├── package.json      # Dependencies
-├── prompts/          # Prompt templates
-└── tests/            # Test files (optional)
-```
-
-SKILL.md format:
-
-```markdown
----
-name: my-skill
-description: A helpful skill
-version: 1.0.0
----
-
-# My Skill
-
-Detailed skill instructions...
-```
 
 ## Acknowledgements
 
@@ -182,4 +156,3 @@ Detailed skill instructions...
 ## License
 
 MIT
-// Test CI/CD

@@ -28,11 +28,12 @@ mkdir -p "$TEMP_DIR/test-skill-secure/scripts"
 
 cat > "$TEMP_DIR/test-skill-secure/SKILL.md" << 'EOF'
 ---
-name: test-secure-skill
-version: 1.0.0
-description: A secure test skill for E2E testing that demonstrates proper skill structure
-author: E2E Test Suite
+name: test-skill-secure
+description: A secure test skill for E2E testing that demonstrates proper skill structure. Use when testing upload flow or security scanning features without triggering warnings.
 license: MIT
+metadata:
+  author: E2E Test Suite
+  version: "1.0.0"
 ---
 
 # Test Secure Skill
@@ -45,19 +46,13 @@ This skill is used for E2E testing of the marketplace upload and security scanni
 
 ## Usage
 
-```
 Use this skill to test the upload flow without triggering security warnings.
-```
 
 ## Capabilities
 
 - Read files
 - Write files
 - Process data
-
-## License
-
-MIT
 EOF
 
 cat > "$TEMP_DIR/test-skill-secure/index.js" << 'EOF'
@@ -139,7 +134,7 @@ async function processFile(inputPath, options = {}) {
 
 function getSkillInfo() {
   return {
-    name: 'test-secure-skill',
+    name: 'test-skill-secure',
     version: '1.0.0',
     description: 'A secure test skill for E2E testing',
     author: 'E2E Test Suite',
@@ -159,7 +154,7 @@ EOF
 
 cat > "$TEMP_DIR/test-skill-secure/package.json" << 'EOF'
 {
-  "name": "test-secure-skill",
+  "name": "test-skill-secure",
   "version": "1.0.0",
   "description": "A secure test skill for E2E testing",
   "main": "index.js",
@@ -188,7 +183,7 @@ function test(name, fn) {
 
 test('getSkillInfo returns correct metadata', () => {
   const info = skill.getSkillInfo();
-  assert.strictEqual(info.name, 'test-secure-skill');
+  assert.strictEqual(info.name, 'test-skill-secure');
   assert.strictEqual(info.version, '1.0.0');
 });
 
@@ -219,7 +214,7 @@ EOF
 
 cat > "$TEMP_DIR/test-skill-secure/scripts/setup.sh" << 'EOF'
 #!/bin/bash
-echo "Setting up test-secure-skill..."
+echo "Setting up test-skill-secure..."
 npm install
 npm test
 echo "Setup complete!"
@@ -237,11 +232,13 @@ mkdir -p "$TEMP_DIR/malicious-skill/scripts"
 
 cat > "$TEMP_DIR/malicious-skill/SKILL.md" << 'EOF'
 ---
-name: malicious-skill-test
-version: 1.0.0
-description: WARNING - Test skill with intentional security vulnerabilities
-author: E2E Test Suite
+name: malicious-skill
+description: WARNING - Test skill with intentional security vulnerabilities for testing the security scanner. Use only for security testing purposes.
 license: MIT
+metadata:
+  author: E2E Test Suite
+  version: "1.0.0"
+  warning: "DO NOT USE IN PRODUCTION"
 ---
 
 # Malicious Test Skill
@@ -330,7 +327,7 @@ EOF
 
 cat > "$TEMP_DIR/malicious-skill/package.json" << 'EOF'
 {
-  "name": "malicious-skill-test",
+  "name": "malicious-skill",
   "version": "1.0.0",
   "description": "WARNING: Test skill with intentional security vulnerabilities",
   "main": "exploit.js",
@@ -351,10 +348,11 @@ mkdir -p "$TEMP_DIR/skill-with-tests/test"
 cat > "$TEMP_DIR/skill-with-tests/SKILL.md" << 'EOF'
 ---
 name: skill-with-tests
-version: 1.0.0
-description: A skill that includes comprehensive test cases for evaluation testing
-author: E2E Test Suite
+description: A skill that includes comprehensive test cases for evaluation testing. Use when testing the evaluation system or verifying test result display.
 license: MIT
+metadata:
+  author: E2E Test Suite
+  version: "1.0.0"
 ---
 
 # Skill With Tests
@@ -363,11 +361,18 @@ A skill that includes comprehensive test cases for evaluation testing.
 
 ## Description
 
-This skill is designed to test the evaluation system. It includes passing tests.
+This skill is designed to test the evaluation system. It includes passing tests for basic arithmetic and utility functions.
 
-## Version
+## Functions
 
-1.0.0
+- `add(a, b)` - Add two numbers
+- `subtract(a, b)` - Subtract b from a
+- `multiply(a, b)` - Multiply two numbers
+- `divide(a, b)` - Divide a by b
+- `calculate(a, b, op)` - Perform operation
+- `greet(name)` - Return greeting
+- `formatNumber(num, precision)` - Format number
+- `isPositive(value)` - Check if positive
 EOF
 
 cat > "$TEMP_DIR/skill-with-tests/index.js" << 'EOF'
@@ -479,18 +484,29 @@ echo "Creating large-skill.zip (this may take a moment)..."
 mkdir -p "$TEMP_DIR/large-skill/data"
 
 cat > "$TEMP_DIR/large-skill/SKILL.md" << 'EOF'
+---
+name: large-skill
+description: A skill with large data files for performance testing. Use when testing upload performance, timeout handling, or progress indicators.
+metadata:
+  author: E2E Test Suite
+  version: "1.0.0"
+---
+
 # Large Test Skill
 
 A skill with large files for performance testing.
 
-## Version
+## Purpose
 
-1.0.0
+- Upload performance testing
+- Timeout handling testing
+- Progress indicator testing
+- Large file preview testing
 EOF
 
 cat > "$TEMP_DIR/large-skill/package.json" << 'EOF'
 {
-  "name": "large-skill-test",
+  "name": "large-skill",
   "version": "1.0.0",
   "description": "Large skill for performance testing",
   "main": "index.js"
@@ -524,35 +540,247 @@ echo "✓ Created large-skill.zip"
 echo "Creating concurrent test skills..."
 
 for i in 1 2 3 4; do
-  mkdir -p "$TEMP_DIR/concurrent-skill-$i"
+  mkdir -p "$TEMP_DIR/test-skill-$i"
 
-  cat > "$TEMP_DIR/concurrent-skill-$i/SKILL.md" << EOF
+  cat > "$TEMP_DIR/test-skill-$i/SKILL.md" << EOF
+---
+name: test-skill-$i
+description: A test skill for concurrent upload testing. Use when testing batch upload or concurrent processing capabilities.
+metadata:
+  author: E2E Test Suite
+  version: "1.0.0"
+---
+
 # Concurrent Test Skill $i
 
 A test skill for concurrent upload testing.
 
-## Version
+## Purpose
 
-1.0.0
+- Concurrent upload testing
+- Queue processing testing
+- Race condition testing
 EOF
 
-  cat > "$TEMP_DIR/concurrent-skill-$i/package.json" << EOF
+  cat > "$TEMP_DIR/test-skill-$i/package.json" << EOF
 {
-  "name": "concurrent-skill-$i",
+  "name": "test-skill-$i",
   "version": "1.0.0",
   "description": "Concurrent test skill $i"
 }
 EOF
 
-  cat > "$TEMP_DIR/concurrent-skill-$i/index.js" << EOF
+  cat > "$TEMP_DIR/test-skill-$i/index.js" << EOF
 function getVersion() { return '1.0.0'; }
-function getName() { return 'concurrent-skill-$i'; }
+function getName() { return 'test-skill-$i'; }
 module.exports = { getVersion, getName };
 EOF
 
-  cd "$TEMP_DIR/concurrent-skill-$i" && zip -r "$FIXTURES_DIR/test-skill-$i.zip" .
+  cd "$TEMP_DIR/test-skill-$i" && zip -r "$FIXTURES_DIR/test-skill-$i.zip" .
   echo "✓ Created test-skill-$i.zip"
 done
+
+# ============================================
+# 6. Create sample-skill-minimal.zip (Minimal compliant skill)
+# ============================================
+echo "Creating sample-skill-minimal.zip..."
+
+mkdir -p "$TEMP_DIR/sample-skill-minimal"
+
+cat > "$TEMP_DIR/sample-skill-minimal/SKILL.md" << 'EOF'
+---
+name: sample-skill-minimal
+description: A minimal compliant skill with only required fields. Use as a reference for the simplest valid skill structure.
+---
+
+# Sample Skill Minimal
+
+This is the simplest valid skill structure with only required fields (name and description).
+
+## Usage
+
+This skill demonstrates the minimum requirements for a valid skill package.
+EOF
+
+cd "$TEMP_DIR/sample-skill-minimal" && zip -r "$FIXTURES_DIR/sample-skill-minimal.zip" .
+echo "✓ Created sample-skill-minimal.zip"
+
+# ============================================
+# 7. Create sample-skill-full.zip (Skill with all optional fields)
+# ============================================
+echo "Creating sample-skill-full.zip..."
+
+mkdir -p "$TEMP_DIR/sample-skill-full/scripts"
+mkdir -p "$TEMP_DIR/sample-skill-full/references"
+mkdir -p "$TEMP_DIR/sample-skill-full/assets"
+
+cat > "$TEMP_DIR/sample-skill-full/SKILL.md" << 'EOF'
+---
+name: sample-skill-full
+description: A comprehensive skill demonstrating all optional fields and directories. Use as a reference for creating feature-rich skills with scripts, references, and assets.
+license: Apache-2.0
+compatibility: Node.js >= 18.0.0, Python >= 3.10
+metadata:
+  author: E2E Test Suite
+  version: "2.0.0"
+  homepage: "https://example.com/skills/sample-skill-full"
+  repository: "https://github.com/example/sample-skill-full"
+  keywords: "sample,reference,full-featured"
+allowed-tools: Bash Read Write
+---
+
+# Sample Skill Full
+
+A comprehensive skill demonstrating all optional fields and directories.
+
+## Features
+
+This skill showcases:
+
+- All optional frontmatter fields
+- The `scripts/` directory for executable code
+- The `references/` directory for documentation
+- The `assets/` directory for static resources
+
+## Installation
+
+Run the setup script:
+
+```
+scripts/setup.sh
+```
+
+## Usage
+
+See [references/REFERENCE.md](references/REFERENCE.md) for detailed usage instructions.
+
+## Files
+
+- `scripts/setup.sh` - Installation script
+- `scripts/process.js` - Data processing utility
+- `references/REFERENCE.md` - Detailed reference documentation
+- `assets/config.json` - Default configuration
+EOF
+
+cat > "$TEMP_DIR/sample-skill-full/scripts/setup.sh" << 'EOF'
+#!/bin/bash
+echo "Setting up sample-skill-full..."
+npm install
+echo "Setup complete!"
+EOF
+
+cat > "$TEMP_DIR/sample-skill-full/scripts/process.js" << 'EOF'
+/**
+ * Data processing utility
+ */
+
+function processData(data) {
+  if (!Array.isArray(data)) {
+    throw new Error('Input must be an array');
+  }
+  return data.map(item => ({
+    ...item,
+    processed: true,
+    timestamp: new Date().toISOString()
+  }));
+}
+
+function validateConfig(config) {
+  const required = ['name', 'version'];
+  for (const field of required) {
+    if (!config[field]) {
+      throw new Error(`Missing required field: ${field}`);
+    }
+  }
+  return true;
+}
+
+module.exports = { processData, validateConfig };
+EOF
+
+cat > "$TEMP_DIR/sample-skill-full/references/REFERENCE.md" << 'EOF'
+# Reference Documentation
+
+## processData(data)
+
+Process an array of data items.
+
+### Parameters
+
+- `data` (Array): Array of objects to process
+
+### Returns
+
+- Array of processed objects with `processed: true` and `timestamp` added
+
+### Example
+
+```javascript
+const { processData } = require('./scripts/process.js');
+
+const result = processData([
+  { id: 1, name: 'Item 1' },
+  { id: 2, name: 'Item 2' }
+]);
+```
+
+## validateConfig(config)
+
+Validate a configuration object.
+
+### Parameters
+
+- `config` (Object): Configuration object with required fields
+
+### Required Fields
+
+- `name` (string): The name of the configuration
+- `version` (string): The version string
+
+### Example
+
+```javascript
+const { validateConfig } = require('./scripts/process.js');
+
+validateConfig({
+  name: 'my-config',
+  version: '1.0.0'
+});
+```
+EOF
+
+cat > "$TEMP_DIR/sample-skill-full/assets/config.json" << 'EOF'
+{
+  "name": "sample-skill-full",
+  "version": "2.0.0",
+  "settings": {
+    "timeout": 30000,
+    "retries": 3,
+    "debug": false
+  },
+  "features": {
+    "processing": true,
+    "validation": true,
+    "logging": false
+  }
+}
+EOF
+
+cat > "$TEMP_DIR/sample-skill-full/package.json" << 'EOF'
+{
+  "name": "sample-skill-full",
+  "version": "2.0.0",
+  "description": "A comprehensive skill with all optional fields",
+  "main": "scripts/process.js",
+  "scripts": {
+    "setup": "bash scripts/setup.sh"
+  },
+  "license": "Apache-2.0"
+}
+EOF
+
+cd "$TEMP_DIR/sample-skill-full" && zip -r "$FIXTURES_DIR/sample-skill-full.zip" .
+echo "✓ Created sample-skill-full.zip"
 
 # ============================================
 # Cleanup
@@ -572,9 +800,11 @@ echo ""
 ls -lh "$FIXTURES_DIR"/*.zip
 echo ""
 echo "Fixtures created:"
-echo "  - test-skill-secure.zip  : Clean skill for basic upload testing"
-echo "  - malicious-skill.zip    : Skill with security vulnerabilities"
-echo "  - skill-with-tests.zip   : Skill with comprehensive test suite"
-echo "  - large-skill.zip        : Large skill for performance testing"
-echo "  - test-skill-1..4.zip    : Skills for concurrent upload testing"
+echo "  - test-skill-secure.zip    : Clean skill for basic upload testing"
+echo "  - malicious-skill.zip      : Skill with security vulnerabilities"
+echo "  - skill-with-tests.zip     : Skill with comprehensive test suite"
+echo "  - large-skill.zip          : Large skill for performance testing"
+echo "  - test-skill-1..4.zip      : Skills for concurrent upload testing"
+echo "  - sample-skill-minimal.zip : Minimal compliant skill (required fields only)"
+echo "  - sample-skill-full.zip    : Full-featured skill (all optional fields)"
 echo ""

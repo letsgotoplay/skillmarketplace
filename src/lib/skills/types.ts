@@ -1,15 +1,16 @@
 import { z } from 'zod';
 
-// Skill metadata from SKILL.md frontmatter
+// Skill metadata from SKILL.md frontmatter (matches Agent Skills Specification)
 export const skillMetadataSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().min(1, 'Description is required'),
-  version: z.string().regex(/^\d+\.\d+\.\d+$/, 'Version must be semantic (e.g., 1.0.0)').optional(),
-  author: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  // Required fields
+  name: z.string().min(1, 'Name is required').max(64, 'Name must be 64 characters or less'),
+  description: z.string().min(1, 'Description is required').max(1024, 'Description must be 1024 characters or less'),
+
+  // Optional fields per specification
   license: z.string().optional(),
-  repository: z.string().url().optional(),
-  homepage: z.string().url().optional(),
+  compatibility: z.string().max(500, 'Compatibility must be 500 characters or less').optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
+  'allowed-tools': z.string().optional(),
 });
 
 export type SkillMetadata = z.infer<typeof skillMetadataSchema>;

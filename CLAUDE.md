@@ -91,3 +91,84 @@ git push origin master  # Render 自动部署
 
 - JS/TS: `pnpm`
 - Python: `uv`
+
+## Skill Specification
+
+### Directory Structure
+
+A skill is a directory containing at minimum a `SKILL.md` file:
+
+```
+skill-name/
+└── SKILL.md          # Required
+```
+
+### SKILL.md Format
+
+The SKILL.md file must contain YAML frontmatter followed by Markdown content.
+
+#### Required Frontmatter
+
+```yaml
+---
+name: skill-name
+description: A description of what this skill does and when to use it.
+---
+```
+
+#### With Optional Fields
+
+```yaml
+---
+name: pdf-processing
+description: Extract text and tables from PDF files, fill forms, merge documents.
+license: Apache-2.0
+metadata:
+  author: example-org
+  version: "1.0"
+---
+```
+
+### Field Reference
+
+| Field | Required | Constraints |
+|-------|----------|-------------|
+| `name` | Yes | Max 64 characters. Lowercase letters, numbers, and hyphens only. Cannot start/end with `-`. No consecutive hyphens (`--`). Must match directory name. |
+| `description` | Yes | Max 1024 characters. Describes what the skill does and when to use it. |
+| `license` | No | License name or reference to a bundled license file. |
+| `compatibility` | No | Max 500 characters. Environment requirements. |
+| `metadata` | No | Arbitrary key-value mapping for additional metadata. |
+| `allowed-tools` | No | Space-delimited list of pre-approved tools. (Experimental) |
+
+### Name Field Rules
+
+- Must be 1-64 characters
+- May only contain lowercase alphanumeric characters and hyphens (`a-z`, `0-9`, `-`)
+- Must not start or end with `-`
+- Must not contain consecutive hyphens (`--`)
+- Must match the parent directory name
+
+**Invalid Examples:**
+```yaml
+name: PDF-Processing  # uppercase not allowed
+name: -pdf            # cannot start with hyphen
+name: pdf--processing # consecutive hyphens not allowed
+```
+
+### Optional Directories
+
+- `scripts/` - Contains executable code that agents can run
+- `references/` - Contains additional documentation (REFERENCE.md, FORMS.md, etc.)
+- `assets/` - Contains static resources: templates, images, data files
+
+### Progressive Disclosure
+
+1. **Metadata (~100 tokens)**: `name` and `description` loaded at startup
+2. **Instructions (<5000 tokens recommended)**: Full `SKILL.md` body loaded when activated
+3. **Resources (as needed)**: Files in `scripts/`, `references/`, or `assets/` loaded on demand
+
+### Validation
+
+```bash
+skills-ref validate ./my-skill
+```

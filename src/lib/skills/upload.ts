@@ -95,7 +95,8 @@ export async function processSkillUpload(options: UploadOptions): Promise<Upload
 
     const { metadata } = validation;
     const slug = generateSkillSlug(metadata.name);
-    const version = metadata.version || '1.0.0';
+    // Version is stored in metadata.metadata.version per spec, fallback to default
+    const version = metadata.metadata?.version || '1.0.0';
     const fullSlug = generateFullSlug(emailPrefix, slug);
 
     // Step 2: Run specification validation BEFORE saving

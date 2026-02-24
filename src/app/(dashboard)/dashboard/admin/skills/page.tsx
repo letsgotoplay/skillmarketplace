@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SkillList } from '@/components/admin/skills/skill-list';
+import { prisma } from '@/lib/db';
 
 interface Skill {
   id: string;
@@ -38,11 +39,71 @@ interface Skill {
 }
 
 async function getSkills(): Promise<{ skills: Skill[]; total: number }> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/admin/skills`,
-    { cache: 'no-store' }
-  );
-  return res.json();
+  const [skills, total] = await Promise.all([
+    prisma.skill.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        category: true,
+        visibility: true,
+        tags: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        stats: {
+          select: {
+            downloadsCount: true,
+            viewsCount: true,
+          },
+        },
+        versions: {
+          select: {
+            id: true,
+            version: true,
+            status: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        _count: {
+          select: {
+            versions: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 25,
+    }),
+    prisma.skill.count(),
+  ]);
+
+  // Serialize dates to strings for Client Component compatibility
+  const serializedSkills = skills.map((skill) => ({
+    ...skill,
+    createdAt: skill.createdAt.toISOString(),
+    updatedAt: skill.updatedAt.toISOString(),
+    versions: skill.versions.map((v) => ({
+      ...v,
+      createdAt: v.createdAt.toISOString(),
+    })),
+  }));
+
+  return { skills: serializedSkills, total };
 }
 
 function SkillListSkeleton() {

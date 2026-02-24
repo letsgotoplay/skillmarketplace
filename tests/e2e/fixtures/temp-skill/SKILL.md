@@ -1,9 +1,10 @@
 ---
-name: test-secure-skill
-version: 1.0.0
-description: A secure test skill for E2E testing that demonstrates proper skill structure
-author: E2E Test Suite
+name: temp-skill
+description: A secure test skill for E2E testing that demonstrates proper skill structure. Use when testing upload flow or security scanning features.
 license: MIT
+metadata:
+  author: E2E Test Suite
+  version: "1.0.1"
 ---
 
 # Test Secure Skill
@@ -25,7 +26,3 @@ Use this skill to test the upload flow without triggering security warnings.
 - Read files
 - Write files
 - Process data
-
-## License
-
-MIT

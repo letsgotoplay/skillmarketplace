@@ -485,7 +485,8 @@ export async function POST(
     }
 
     const { metadata } = validation;
-    const version = metadata.version || '1.0.0';
+    // Version is stored in metadata.metadata.version per spec, fallback to default
+    const version = metadata.metadata?.version || '1.0.0';
 
     // Validate skill name matches
     if (metadata.name !== skill.name) {

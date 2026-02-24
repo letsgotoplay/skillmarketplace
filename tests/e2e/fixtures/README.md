@@ -16,14 +16,16 @@ chmod +x create-fixtures.sh
 
 | File | Size | Purpose |
 |------|------|---------|
-| `test-skill-secure.zip` | ~4KB | Clean skill with no security issues for basic upload testing |
-| `malicious-skill.zip` | ~3KB | Skill with intentional security vulnerabilities for scanner testing |
+| `test-skill-secure.zip` | ~3KB | Clean skill with no security issues for basic upload testing |
+| `malicious-skill.zip` | ~2KB | Skill with intentional security vulnerabilities for scanner testing |
 | `skill-with-tests.zip` | ~3KB | Skill with comprehensive test suite for evaluation testing |
 | `large-skill.zip` | ~2.6MB | Large skill for performance and timeout testing |
 | `test-skill-1.zip` | ~800B | Simple skill for concurrent upload testing |
 | `test-skill-2.zip` | ~800B | Simple skill for concurrent upload testing |
 | `test-skill-3.zip` | ~800B | Simple skill for concurrent upload testing |
 | `test-skill-4.zip` | ~800B | Simple skill for concurrent upload testing |
+| `sample-skill-minimal.zip` | ~400B | Minimal compliant skill (only required fields) |
+| `sample-skill-full.zip` | ~3KB | Full-featured skill with all optional fields and directories |
 
 ## Fixture Details
 
@@ -141,6 +143,52 @@ Simple skills for concurrent upload testing.
 - Queue processing testing
 - Race condition testing
 
+---
+
+### sample-skill-minimal.zip
+
+A minimal compliant skill with only required fields.
+
+**Contents:**
+- `SKILL.md` - Minimal documentation with only `name` and `description`
+
+**Compliance:**
+- Risk Level: None
+- Follows specification exactly
+- Only required fields present
+
+**Use Cases:**
+- Reference for simplest valid skill
+- Specification compliance testing
+- Validation baseline testing
+
+---
+
+### sample-skill-full.zip
+
+A comprehensive skill demonstrating all optional fields and directories.
+
+**Contents:**
+- `SKILL.md` - Documentation with all optional fields
+- `scripts/setup.sh` - Installation script
+- `scripts/process.js` - Data processing utility
+- `references/REFERENCE.md` - Detailed documentation
+- `assets/config.json` - Default configuration
+- `package.json` - Package manifest
+
+**Frontmatter Fields:**
+- `name` (required)
+- `description` (required)
+- `license` (optional)
+- `compatibility` (optional)
+- `metadata` (optional)
+- `allowed-tools` (optional)
+
+**Use Cases:**
+- Reference for full-featured skill structure
+- Directory structure testing
+- Optional field validation
+
 ## Test Matrix
 
 | Test Case | Fixture(s) Used |
@@ -150,6 +198,7 @@ Simple skills for concurrent upload testing.
 | TC-1.5: Batch Upload | test-skill-1..4.zip |
 | TC-1.6: Large File Upload | large-skill.zip |
 | TC-5.1: Evaluation Lifecycle | skill-with-tests.zip |
+| TC-Spec: Specification Compliance | sample-skill-minimal.zip, sample-skill-full.zip |
 | EC-1: Concurrent Uploads | test-skill-1..4.zip |
 | EC-3: Large File Handling | large-skill.zip |
 
@@ -168,3 +217,4 @@ rm *.zip
 - All fixtures are safe to use in testing environments
 - `malicious-skill.zip` contains intentional vulnerabilities but is not executable
 - Large fixture generation may take a few seconds due to JSON generation
+- All skills follow the Agent Skills Specification with proper YAML frontmatter

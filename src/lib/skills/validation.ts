@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import * as yaml from 'js-yaml';
 import {
   skillMetadataSchema,
   type SkillMetadata,
@@ -14,46 +15,45 @@ const PROMPTS_DIR = 'prompts';
 const TESTS_FILE = 'tests.json';
 
 /**
- * Extract frontmatter from SKILL.md content
+ * Extract frontmatter from SKILL.md content using proper YAML parsing
  */
 function extractFrontmatter(content: string): { frontmatter: Record<string, unknown>; body: string } | null {
-  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
-  const match = content.match(frontmatterRegex);
-
-  if (!match) {
+  // Check if content starts with ---
+  if (!content.startsWith('---')) {
     return null;
   }
 
-  const frontmatterLines = match[1].split('\n');
-  const frontmatter: Record<string, unknown> = {};
-
-  for (const line of frontmatterLines) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
-
-    const key = line.slice(0, colonIndex).trim();
-    let value: unknown = line.slice(colonIndex + 1).trim();
-
-    // Parse arrays (simple format: [item1, item2])
-    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
-      value = value
-        .slice(1, -1)
-        .split(',')
-        .map((item) => item.trim().replace(/^["']|["']$/g, ''))
-        .filter(Boolean);
-    }
-
-    // Parse booleans
-    if (value === 'true') value = true;
-    if (value === 'false') value = false;
-
-    frontmatter[key] = value;
+  // Find the closing ---
+  const endIndex = content.indexOf('---', 3);
+  if (endIndex === -1) {
+    return null;
   }
 
-  return {
-    frontmatter,
-    body: match[2],
-  };
+  const frontmatterStr = content.slice(3, endIndex).trim();
+  const body = content.slice(endIndex + 3).trim();
+
+  try {
+    const frontmatter = yaml.load(frontmatterStr);
+    if (typeof frontmatter !== 'object' || frontmatter === null || Array.isArray(frontmatter)) {
+      return null;
+    }
+
+    // Convert metadata values to strings if it's a dict
+    const result = frontmatter as Record<string, unknown>;
+    if ('metadata' in result && typeof result['metadata'] === 'object' && result['metadata'] !== null) {
+      const metaDict = result['metadata'] as Record<string, unknown>;
+      result['metadata'] = Object.fromEntries(
+        Object.entries(metaDict).map(([k, v]) => [k, String(v)])
+      );
+    }
+
+    return {
+      frontmatter: result,
+      body,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
