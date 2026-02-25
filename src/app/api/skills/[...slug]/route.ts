@@ -122,6 +122,12 @@ export async function GET(
   { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const { slug } = await params;
+
+  // Check if this is a feedback request: /api/skills/{id}/feedback
+  if (slug.length >= 2 && slug[slug.length - 1] === 'feedback') {
+    return handleGetFeedback(slug);
+  }
+
   const identifier = slug.join('/');
   const { userId } = await getUserId(request);
 
@@ -427,6 +433,11 @@ export async function POST(
 ) {
   const { slug } = await params;
 
+  // Check if this is a feedback request: /api/skills/{id}/feedback
+  if (slug.length >= 2 && slug[slug.length - 1] === 'feedback') {
+    return handlePostFeedback(request, slug);
+  }
+
   // Check if this is a versions request: /api/skills/{id}/versions
   if (slug.length < 2 || slug[slug.length - 1] !== 'versions') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -590,6 +601,110 @@ export async function POST(
       error: error instanceof Error ? error.message : 'Upload failed',
     }, { status: 500 });
   }
+}
+
+// Handler for GET /api/skills/{id}/feedback
+async function handleGetFeedback(slug: string[]) {
+  const identifier = slug.slice(0, -1).join('/');
+
+  const skill = await resolveSkill(identifier);
+
+  if (!skill) {
+    return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+  }
+
+  const feedback = await prisma.skillFeedback.findMany({
+    where: { skillId: skill.id },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  return NextResponse.json(feedback);
+}
+
+// Handler for POST /api/skills/{id}/feedback
+async function handlePostFeedback(request: NextRequest, slug: string[]) {
+  const identifier = slug.slice(0, -1).join('/');
+
+  // Check authentication
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const skill = await resolveSkill(identifier);
+
+  if (!skill) {
+    return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
+  }
+
+  // Parse request body
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const { rating, comment } = body;
+
+  // Validate: at least rating or comment required
+  const hasRating = rating !== null && rating !== undefined;
+  const hasComment = comment && typeof comment === 'string' && comment.trim().length > 0;
+
+  if (!hasRating && !hasComment) {
+    return NextResponse.json(
+      { error: 'Please provide a rating or comment' },
+      { status: 400 }
+    );
+  }
+
+  // Validate rating range
+  if (hasRating) {
+    if (typeof rating !== 'number' || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+      return NextResponse.json(
+        { error: 'Rating must be an integer between 1 and 5' },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Create feedback
+  const feedback = await prisma.skillFeedback.create({
+    data: {
+      skillId: skill.id,
+      userId: session.user.id,
+      rating: hasRating ? rating : null,
+      comment: hasComment ? comment.trim() : null,
+    },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  return NextResponse.json(feedback, { status: 201 });
 }
 
 async function triggerSecurityAnalysis(
