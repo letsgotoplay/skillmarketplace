@@ -20,6 +20,7 @@ export async function GET() {
         name: true,
         role: true,
         createdAt: true,
+        passwordHash: true,
       },
     });
 
@@ -27,7 +28,16 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        createdAt: user.createdAt,
+        hasPassword: !!user.passwordHash,
+      },
+    });
   } catch (error) {
     console.error('Error fetching profile:', error);
     return NextResponse.json(

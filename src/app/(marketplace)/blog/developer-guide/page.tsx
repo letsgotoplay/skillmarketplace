@@ -141,7 +141,7 @@ export default function DeveloperGuidePage() {
                 <CardTitle className="text-lg">Step 1: Clone & Install</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`git clone <repository-url>
 cd skillmarketplace
 pnpm install`}
@@ -155,7 +155,7 @@ pnpm install`}
               </CardHeader>
               <CardContent>
                 <p className="mb-4">Copy the example environment file and configure:</p>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`cp .env.example .env`}
                 </pre>
                 <p className="mt-4 text-sm text-muted-foreground">
@@ -175,7 +175,7 @@ pnpm install`}
                 <CardTitle className="text-lg">Step 3: Start Infrastructure</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`# Start PostgreSQL, Redis, and Sandbox containers
 docker-compose up -d
 
@@ -190,7 +190,7 @@ pnpm minio:start`}
                 <CardTitle className="text-lg">Step 4: Database Setup</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`# Generate Prisma client
 pnpm db:generate
 
@@ -208,7 +208,7 @@ pnpm db:seed`}
                 <CardTitle className="text-lg">Step 5: Start Development Server</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`pnpm dev`}
                 </pre>
                 <p className="mt-4 text-sm text-muted-foreground">
@@ -306,7 +306,7 @@ npx prisma studio --port 5556`}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`import { prisma } from '@/lib/prisma';
 
 // Find all skills with filtering
@@ -483,7 +483,7 @@ pnpm minio:stop`}
                     </p>
                   </div>
                 </div>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`# Check Redis connection
 docker exec -it skillmarketplace-redis redis-cli ping
 # Should return: PONG
@@ -509,7 +509,7 @@ docker exec -it skillmarketplace-redis redis-cli monitor`}
                 <CardTitle className="text-lg">Unit & Integration Tests</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`# Run all unit tests
 pnpm test
 
@@ -557,7 +557,7 @@ agent-browser --executable-path "/Applications/Google Chrome.app/Contents/MacOS/
           <section className="mb-12">
             <Card>
               <CardContent className="pt-6">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <pre className="bg-zinc-950 p-4 rounded-lg overflow-x-auto text-sm text-zinc-100">
 {`skillmarketplace/
 ├── src/
 │   ├── app/                    # Next.js App Router

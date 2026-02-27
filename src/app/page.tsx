@@ -94,7 +94,7 @@ export default async function HomePage() {
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
                 Discover, validate, and deploy AI agent skills with enterprise-grade security.
-                Browse thousands of pre-built skills or share your own.
+                Browse hundreds of pre-built skills or share your own.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/marketplace">
@@ -112,7 +112,7 @@ export default async function HomePage() {
                 ) : (
                   <Link href="/register">
                     <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                      Get Started Free
+                      Get Started
                     </Button>
                   </Link>
                 )}
@@ -210,7 +210,7 @@ export default async function HomePage() {
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
               <p className="text-muted-foreground mb-8">
-                Join thousands of developers using SkillHub to power their AI agents
+                Join hundreds of developers using SkillHub to power their AI agents
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 {session ? (

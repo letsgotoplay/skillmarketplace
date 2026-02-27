@@ -20,6 +20,7 @@ interface UserProfile {
   name: string | null;
   role: string;
   createdAt: string;
+  hasPassword: boolean;
 }
 
 export default function ProfilePage() {
@@ -168,7 +169,8 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Change Password */}
+      {/* Change Password - only for non-SSO users */}
+      {profile?.hasPassword && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -221,6 +223,7 @@ export default function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
